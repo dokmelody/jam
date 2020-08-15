@@ -1,0 +1,803 @@
+<?xml version="1.0"?>
+
+
+<!DOCTYPE rdf:RDF [
+    <!ENTITY owl "http://www.w3.org/2002/07/owl#" >
+    <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#" >
+    <!ENTITY owl2xml "http://www.w3.org/2006/12/owl2-xml#" >
+    <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#" >
+    <!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#" >
+    <!ENTITY pmbok4 "http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#" >
+    <!ENTITY pmbok-ref "http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#" >
+    <!ENTITY pmbok-event "http://pszwed.ia.agh.edu.pl/ontologies/pmbok-event.owl#" >
+    <!ENTITY pmbok2 "http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok." >
+    <!ENTITY pmbok "http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok." >
+]>
+
+
+<rdf:RDF xmlns="http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#"
+     xml:base="http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl"
+     xmlns:owl2xml="http://www.w3.org/2006/12/owl2-xml#"
+     xmlns:pmbok-ref="http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#"
+     xmlns:pmbok="&pmbok-ref;pmbok."
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:pmbok4="http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#"
+     xmlns:pmbok-event="http://pszwed.ia.agh.edu.pl/ontologies/pmbok-event.owl#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:pmbok2="&pmbok4;pmbok."
+     xmlns:owl="http://www.w3.org/2002/07/owl#">
+    <owl:Ontology rdf:about="">
+        <owl:imports rdf:resource="http://pszwed.ia.agh.edu.pl/ontologies/pmbok-event.owl"/>
+        <owl:imports rdf:resource="http://pszwed.ia.agh.edu.pl/ontologies/pmbok-role.owl"/>
+        <owl:imports rdf:resource="http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl"/>
+        <owl:imports rdf:resource="http://pszwed.ia.agh.edu.pl/ontologies/process-relations.owl"/>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-event.owl#consistsOf -->
+
+    <owl:ObjectProperty rdf:about="&pmbok-event;consistsOf"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.EnvironmentalArtifact -->
+
+    <owl:Class rdf:about="#pmbok.EnvironmentalArtifact">
+        <rdfs:subClassOf rdf:resource="#pmbok.ArtifactGroups"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.ManagementDocument -->
+
+    <owl:Class rdf:about="#pmbok.ManagementDocument">
+        <rdfs:subClassOf rdf:resource="#pmbok.ArtifactGroups"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.ProjectBaselines -->
+
+    <owl:Class rdf:about="#pmbok.ProjectBaselines">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.ProjectDeliverables -->
+
+    <owl:Class rdf:about="#pmbok.ProjectDeliverables">
+        <rdfs:subClassOf rdf:resource="#pmbok.ArtifactGroups"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.ProjectPlan -->
+
+    <owl:Class rdf:about="#pmbok.ProjectPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.ProjectStatus -->
+
+    <owl:Class rdf:about="#pmbok.ProjectStatus">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.SubsidiaryPlans -->
+
+    <owl:Class rdf:about="#pmbok.SubsidiaryPlans">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok-ref.owl#pmbok.ArtifactGroups -->
+
+    <owl:Class rdf:about="#pmbok.ArtifactGroups"/>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.AcceptedDeliverables -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.AcceptedDeliverables">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectDeliverables"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ActivityAttributes -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ActivityAttributes">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ActivityCostEstimates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ActivityCostEstimates">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ActivityDurationEstimates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ActivityDurationEstimates">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ActivityList -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ActivityList">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ActivityResourceRequirements -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ActivityResourceRequirements">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ApprovedChangeRequests -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ApprovedChangeRequests">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.BasisOfEstimates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.BasisOfEstimates">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.BudgetForecasts -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.BudgetForecasts">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.BusinessCase -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.BusinessCase">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ChangeLog -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ChangeLog">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ChangeRequests -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ChangeRequests">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ChangeRequestsStatusUpdate -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ChangeRequestsStatusUpdate">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ClosedProcurements -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ClosedProcurements">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.CommunicationsManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.CommunicationsManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.Contracts -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.Contracts">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.CostManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.CostManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.CostPerformanceBaseline -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.CostPerformanceBaseline">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectBaselines"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.Deliverables -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.Deliverables">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectDeliverables"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.EnterpriseEnvironmentalFactors -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.EnterpriseEnvironmentalFactors">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.EnterpriseEnvironmentalFactorsUpdates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.EnterpriseEnvironmentalFactorsUpdates">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.FinalProductOrServiceOrResultTransition -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.FinalProductOrServiceOrResultTransition">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectDeliverables"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.HumanResourcePlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.HumanResourcePlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.IssueActionItemLog -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.IssueActionItemLog">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.MakeOrBuyDecisions -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.MakeOrBuyDecisions">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.MilestoneList -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.MilestoneList">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.OrganizationalProcessAssets -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.OrganizationalProcessAssets">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.OrganizationalProcessAssetsUpdates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.OrganizationalProcessAssetsUpdates">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.OutputsFromPlanningProcess -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.OutputsFromPlanningProcess">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.PerformanceReports -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.PerformanceReports">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProcessImprovementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProcessImprovementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProcurementDocuments -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProcurementDocuments">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProcurementManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProcurementManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProcurementStatementsOfWork -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProcurementStatementsOfWork">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProcurementsContractAward -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProcurementsContractAward">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectCharter -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectCharter">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectDocuments -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectDocuments">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectDocumentsUpdates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectDocumentsUpdates">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectFundingRequirement -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectFundingRequirement">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectManagementPlanUpdates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectManagementPlanUpdates">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectSchedule -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectSchedule">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectScheduleNetworkDiagram -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectScheduleNetworkDiagram">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectScopeStatement -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectScopeStatement">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectStaffAssigned -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectStaffAssigned">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectStaffAssignments -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectStaffAssignments">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ProjectStatementOfWork -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ProjectStatementOfWork">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.QualifiedSellerList -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.QualifiedSellerList">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.QualityChecklists -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.QualityChecklists">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.QualityControlMeasurements -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.QualityControlMeasurements">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.QualityManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.QualityManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.QualityMetrics -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.QualityMetrics">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RequirementsDocumentation -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RequirementsDocumentation">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RequirementsManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RequirementsManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RequirementsTraceabilityMatrix -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RequirementsTraceabilityMatrix">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ResourceBreakdownStructure -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ResourceBreakdownStructure">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ResourceCalendars -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ResourceCalendars">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.Risk-relatedContractDecisions -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.Risk-relatedContractDecisions">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RiskManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RiskManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RiskRegister -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RiskRegister">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RiskRegisterUpdates -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RiskRegisterUpdates">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.RiskRelatedContractDecisions -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.RiskRelatedContractDecisions">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ScheduleBaseline -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ScheduleBaseline">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectBaselines"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ScheduleData -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ScheduleData">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ScheduleManagementPlan -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ScheduleManagementPlan">
+        <rdfs:subClassOf rdf:resource="#pmbok.SubsidiaryPlans"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ScopeBaseline -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ScopeBaseline">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectBaselines"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="&pmbok-event;consistsOf"/>
+                <owl:onClass rdf:resource="&pmbok4;pmbok.WBS"/>
+                <owl:qualifiedCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:qualifiedCardinality>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="&pmbok-event;consistsOf"/>
+                <owl:onClass rdf:resource="&pmbok4;pmbok.ProjectScopeStatement"/>
+                <owl:qualifiedCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:qualifiedCardinality>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="&pmbok-event;consistsOf"/>
+                <owl:onClass rdf:resource="&pmbok4;pmbok.WBSDictionary"/>
+                <owl:qualifiedCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:qualifiedCardinality>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.SelectedSellers -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.SelectedSellers">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.SellerProposals -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.SellerProposals">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.SourceSelectionCriteria -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.SourceSelectionCriteria">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.StakeholderManagementStrategy -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.StakeholderManagementStrategy">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.StakeholderRegister -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.StakeholderRegister">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.TeamPerformanceAssessments -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.TeamPerformanceAssessments">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.TeamingAgreements -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.TeamingAgreements">
+        <rdfs:subClassOf rdf:resource="#pmbok.EnvironmentalArtifact"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ValidatedChanges -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ValidatedChanges">
+        <rdfs:subClassOf rdf:resource="#pmbok.ManagementDocument"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.ValidatedDeliverables -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.ValidatedDeliverables">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectDeliverables"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.WBS -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.WBS">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.WBSDictionary -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.WBSDictionary">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectPlan"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.WorkPerformanceInformation -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.WorkPerformanceInformation">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- http://pszwed.ia.agh.edu.pl/ontologies/pmbok4.owl#pmbok.WorkPerformanceMeasurements -->
+
+    <owl:Class rdf:about="&pmbok4;pmbok.WorkPerformanceMeasurements">
+        <rdfs:subClassOf rdf:resource="#pmbok.ProjectStatus"/>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // General axioms
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description>
+        <rdf:type rdf:resource="&owl;AllDisjointClasses"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="#pmbok.EnvironmentalArtifact"/>
+            <rdf:Description rdf:about="#pmbok.ManagementDocument"/>
+            <rdf:Description rdf:about="#pmbok.ProjectDeliverables"/>
+        </owl:members>
+    </rdf:Description>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 2.2.1.1138) http://owlapi.sourceforge.net -->
+
