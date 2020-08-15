@@ -1,8 +1,8 @@
 (defproject dok-jam "0.1.0-SNAPSHOT"
 
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
-
+  :description "DokMelodyJam - alpha version for Programming Language Jam"
+  :url "https://www.dokmelody.org"
+ 
   :dependencies [[ch.qos.logback/logback-classic "1.2.3"]
                  [cheshire "5.10.0"]
                  [clojure.java-time "0.3.2"]
@@ -31,7 +31,9 @@
                  [ring-webjars "0.2.0"]
                  [ring/ring-core "1.8.1"]
                  [ring/ring-defaults "0.3.2"]
-                 [selmer "1.12.27"]]
+                 [selmer "1.12.27"]
+                 [fogus/bacwn "0.4.0"]]
+
 
   :min-lein-version "2.0.0"
   
