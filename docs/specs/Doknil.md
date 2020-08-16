@@ -31,7 +31,7 @@ An ``instance`` can play a ``role`` for a certain instances. For example ``issue
 
 ``Instances`` can have multiple roles.
 
-Instances used as "owners" (i.e. in the ``in ...`` part) can form an hieararchy. For example ``companyX, companyX/departmentY, companyX/projectZ``.
+Instances used as "owners" (i.e. in the ``of ...`` part) can form an hieararchy. For example ``companyX, companyX/departmentY, companyX/projectZ``.
 
 Doknil queries and rules follow a predictable inference semantic:
 * if ``x`` plays a role ``R`` for an owner ``x/y``, then it plays the same role also for the parent of ``x`` (e.g. an issue of ``companyX/projectZ`` is an issue also for ``companyX``)
@@ -67,6 +67,20 @@ lordOfTheRings/places --> {
 }
 ```
 
+Contexts can share same set of facts
+
+```
+lordOfTheRings/places --> {
+  !overrideContext world/places
+
+  gondor isa City
+}
+
+hobbit/places --> {
+  !includeContext lordOfTheRigs/places
+}
+```
+
 ### Negation
 
 Doknil assumes (closed-world-assumption)[https://en.wikipedia.org/wiki/Closed-world_assumption], i.e. what is not currently known to be true, is false.
@@ -82,6 +96,16 @@ A link (i.e. a relationships in graph-databases) connects two instances/cards us
 An attribute (i.e. a property in graph-database) is a named property of an instance containing usually a value, but also a reference to another instance.
 
 In Doknil there are only links. Instances can have attributes, but they are managed externally to Doknil, in the host system containing effective representation of instances. Optionally an instance can generate automatically links, according its content, expecially if these links must follow the derivation semantic of Doknil. In this way queries are simpler and coherent.
+
+### Single hiearrchy for Owner and Role
+
+An ``Owner`` in the ``of ...`` part can be only in one hiearchy. This because it is error-prone classyfing ah hiearchy of owner in different ways.
+
+A ``Role`` can be part only of one hierarchy. 
+
+### Multiple hierarchies for Contexts
+
+A ``Context`` can be in more than one hierachy. In this way one can classify contexts in different logical ways. For example the same author of a paper can be part of different organizations.
 
 ## Doknil syntax
 

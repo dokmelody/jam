@@ -28,3 +28,18 @@ Dok programming language design follows these guidelines:
 ## Temporary design
 
 A first draft of the design (but all can change) is at https://bootstrapping.dokmelody.org/dok-lang/Dok.html
+
+## Notes about design
+
+### Hints by Clojure studying
+
+In Dok abstract data structures have a common API like in Clojure, then the programmer specify better (using annotations or similar) the specific data structure to use.
+
+In Clojure there are small details to consider:
+* ``'(1 x)`` will not evaluate ``x`` and it is usually the form to use in meta programming
+* ``(list 1 x)`` will evaluate ``x`` and it is usually the form to use in normal code
+* vectors are faster than lists for lokkup and adding to the end
+* lists are faster only for adding an elementi at head position
+* so in Clojure vectors are used in idiomatic code more than lists
+
+In Dok instead we have tuples as idiotamic data type, and streams/lists and Maps. Then correct data structure will be decided.
