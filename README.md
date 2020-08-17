@@ -15,6 +15,8 @@ Use DokMelody for designing and improving Dok language, and this project, in "ea
 
 It is all in alpha/design/development state: many things can not work, all can change.
 
+Jam progress is monitored on https://repl.it/@DokLang/jam-roadmap#README.md
+
 ## Documentation
 
 See ``docs`` directory for more info.
