@@ -52,6 +52,7 @@ metaprogramming/dok --> {
 ```
 
 TODO says in the manual that the ``of ..`` can accepts synonimous like ``respect ...`` etc...
+TODO double-check that the direction of inference of intensional facts for ``respect ...`` and for ``context`` is the intended one
 
 ### Some query
 
