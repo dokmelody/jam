@@ -6,6 +6,7 @@
     [org.dokmelody.jam.config :refer [env]]
     [clojure.tools.cli :refer [parse-opts]]
     [clojure.tools.logging :as log]
+    [clojure.tools.logging.impl :as log-impl]
     [mount.core :as mount])
   (:gen-class))
 
@@ -47,12 +48,15 @@
   (shutdown-agents))
 
 (defn start-app [args]
-  (doseq [component (-> args
+  (binding [log/*logger-factory* log-impl/disabled-logger-factory]
+    ; disable logging
+    
+    (doseq [component (-> args
                         (parse-opts cli-options)
                         mount/start-with-args
                         :started)]
     (log/info component "started"))
-  (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
+    (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app))))
 
 (defn -main [& args]
   (println args)
