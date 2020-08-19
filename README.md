@@ -29,25 +29,34 @@ Java JDK 11.
 
 ## Running
 
-TODO I'm switching to maven, so this is temporary
-TODO starts the server in an automatic way
+```
+mvn compile exec:java -Denv=prod -Dconf=config-prod.edn
+```
+
+A web server will listen on port 3000.
+
+## Testing
 
 ```
-mvn exec:java
+mvn compile exec:java -Denv=test -Dconf=config-test.edn
 ```
 
 ## Developing
 
-```
-mvn compile
-mvn exec:java -Denv=dev -Dconf=dev-config.edn
-```
-
-for tests
+For compiling only:
 
 ```
-mvn TODO -Denv=dev
+mvn compile -Denv=dev -Dconf=config-dev.edn
 ```
+
+For compiling and running a web server
+
+```
+mvn compile exec:java -Denv=dev -Dconf=config-dev.edn
+```
+
+A web server will listen on port 3000, and a Clojure nrepl on port 7000, and web errors will contains 
+(sometime sensitive) debug information. Whenever possible changes to Clojure code will be recompiled live.
 
 ## License
 

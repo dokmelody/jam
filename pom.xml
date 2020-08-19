@@ -39,6 +39,7 @@
 
       <properties>
         <jvm.options></jvm.options>
+        <envMainClass>org.dokmelody.jam.Main</envMainClass>
       </properties>
 
       <build>
@@ -64,6 +65,7 @@
 
       <properties>
         <jvm.options>-Dconf=dev-config.edn</jvm.options>
+        <envMainClass>org.dokmelody.jam.Main</envMainClass>
       </properties>
 
       <build>
@@ -75,18 +77,38 @@
             <directory>env/dev/resources</directory>
           </resource>
         </resources>
-
-        <testResources>
-          <testResource>
-            <directory>env/dev/resources</directory>
-          </testResource>
-        </testResources>
      </build>
-
+    </profile>
  
+    <profile>
+      <id>env-test</id>
+      <activation>
+        <property>
+          <name>env</name>
+          <value>test</value>
+        </property>
+      </activation>
+
+      <properties>
+        <jvm.options>-Dconf=dev-config.edn</jvm.options>
+        <envMainClass>org.dokmelody.jam.Test</envMainClass>
+      </properties>
+
+      <build>
+        <resources>
+          <resource>
+            <directory>env/test/clj</directory>
+          </resource>
+          <resource>
+            <directory>env/test/resources</directory>
+          </resource>
+          <resource>
+            <directory>test/clj</directory>
+          </resource>
+        </resources>
+     </build>
     </profile>
   </profiles>
-
 
   <build>
    <pluginManagement>
@@ -104,7 +126,7 @@
          <artifactId>exec-maven-plugin</artifactId>
          <version>3.0.0</version>
          <configuration>
-           <mainClass>org.dokmelody.jam.Main</mainClass>
+           <mainClass>${envMainClass}</mainClass>
          </configuration>
        </plugin>
 
@@ -119,17 +141,6 @@
         <directory>src/clj</directory>
       </resource>
     </resources>
-    <testResources>
-      <testResource>
-        <directory>env/test/resources</directory>
-      </testResource>
-      <testResource>
-        <directory>resources</directory>
-      </testResource>
-      <testResource>
-        <directory>test/clj</directory>
-      </testResource>
-    </testResources>
     <directory>target</directory>
     <outputDirectory>target/classes</outputDirectory>
   </build>

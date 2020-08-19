@@ -7,7 +7,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.concurrent.Callable;
 
-public class Main {
+public class Test {
     public static void callClojure(String ns, String fn) throws Exception {
         // load Clojure lib. See https://clojure.github.io/clojure/javadoc/clojure/java/api/Clojure.html
         IFn require = Clojure.var("clojure.core", "require");
@@ -16,6 +16,6 @@ public class Main {
         Clojure.var(ns, fn).invoke();
     }
     public static void main(String[] args) throws Exception {
-        callClojure("org.dokmelody.jam.core", "-start-app");
+        callClojure("org.dokmelody.jam.test.core", "-test-all");
     }
 }

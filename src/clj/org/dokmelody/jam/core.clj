@@ -58,7 +58,9 @@
     (log/info component "started"))
     (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app))))
 
+(defn -start-app []
+  (start-app []))
+
 (defn -main [& args]
-  (println args)
   (start-app args))
 
