@@ -1,4 +1,4 @@
-(ns dok-jam.env
+(ns org.dokmelody.jam.env
   (:require [clojure.tools.logging :as log]))
 
 (def defaults

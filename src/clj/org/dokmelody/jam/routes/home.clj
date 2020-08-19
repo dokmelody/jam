@@ -1,8 +1,8 @@
-(ns dok-jam.routes.home
+(ns org.dokmelody.jam.routes.home
   (:require
-   [dok-jam.layout :as layout]
+   [org.dokmelody.jam.layout :as layout]
    [clojure.java.io :as io]
-   [dok-jam.middleware :as middleware]
+   [org.dokmelody.jam.middleware :as middleware]
    [ring.util.response]
    [ring.util.http-response :as response]))
 

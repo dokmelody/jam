@@ -1,10 +1,10 @@
 ;; SPDX-License-Identifier: MIT
 ;; Copyright (C) 2020 Massimo Zaniboni <mzan@dokmelody.org>
 
-(ns dok-jam.test.doknil
+(ns org.dokmelody.jam.test.doknil
   (:require [fogus.datalog.bacwn.impl.literals :as literals]
             [clojure.test :refer :all]
-            [dok-jam.doknil.core :refer :all :as doknil])
+            [org.dokmelody.jam.doknil.core :refer :all :as doknil])
   (:use 
         [fogus.datalog.bacwn :only (build-work-plan run-work-plan)]
         [fogus.datalog.bacwn.macros :only (<- ?- make-database)]

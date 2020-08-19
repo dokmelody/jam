@@ -1,9 +1,9 @@
-(ns dok-jam.test.handler
+(ns org.dokmelody.jam.test.handler
   (:require
     [clojure.test :refer :all]
     [ring.mock.request :refer :all]
-    [dok-jam.handler :refer :all]
-    [dok-jam.middleware.formats :as formats]
+    [org.dokmelody.jam.handler :refer :all]
+    [org.dokmelody.jam.middleware.formats :as formats]
     [muuntaja.core :as m]
     [mount.core :as mount]))
 
@@ -13,8 +13,8 @@
 (use-fixtures
   :once
   (fn [f]
-    (mount/start #'dok-jam.config/env
-                 #'dok-jam.handler/app-routes)
+    (mount/start #'org.dokmelody.jam.config/env
+                 #'org.dokmelody.jam.handler/app-routes)
     (f)))
 
 (deftest test-app

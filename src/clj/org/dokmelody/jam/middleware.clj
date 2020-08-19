@@ -1,14 +1,14 @@
-(ns dok-jam.middleware
+(ns org.dokmelody.jam.middleware
   (:require
-    [dok-jam.env :refer [defaults]]
+    [org.dokmelody.jam.env :refer [defaults]]
     [cheshire.generate :as cheshire]
     [cognitect.transit :as transit]
     [clojure.tools.logging :as log]
-    [dok-jam.layout :refer [error-page]]
+    [org.dokmelody.jam.layout :refer [error-page]]
     [ring.middleware.anti-forgery :refer [wrap-anti-forgery]]
-    [dok-jam.middleware.formats :as formats]
+    [org.dokmelody.jam.middleware.formats :as formats]
     [muuntaja.middleware :refer [wrap-format wrap-params]]
-    [dok-jam.config :refer [env]]
+    [org.dokmelody.jam.config :refer [env]]
     [ring.middleware.flash :refer [wrap-flash]]
     [ring.adapter.undertow.middleware.session :refer [wrap-session]]
     [ring.middleware.defaults :refer [site-defaults wrap-defaults]])

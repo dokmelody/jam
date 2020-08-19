@@ -1,4 +1,4 @@
-(ns dok-jam.layout
+(ns org.dokmelody.jam.layout
   (:require
     [clojure.java.io]
     [selmer.parser :as parser]

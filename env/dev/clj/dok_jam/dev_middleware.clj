@@ -1,4 +1,4 @@
-(ns dok-jam.dev-middleware
+(ns org.dokmelody.jam.dev-middleware
   (:require
     [ring.middleware.reload :refer [wrap-reload]]
     [selmer.middleware :refer [wrap-error-page]]

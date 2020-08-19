@@ -1,4 +1,4 @@
-(ns dok-jam.middleware.formats
+(ns org.dokmelody.jam.middleware.formats
   (:require
     [cognitect.transit :as transit]
     [luminus-transit.time :as time]

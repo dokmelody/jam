@@ -1,4 +1,4 @@
-(ns dok-jam.config
+(ns org.dokmelody.jam.config
   (:require
     [cprop.core :refer [load-config]]
     [cprop.source :as source]

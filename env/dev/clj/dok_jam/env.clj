@@ -1,8 +1,8 @@
-(ns dok-jam.env
+(ns org.dokmelody.jam.env
   (:require
     [selmer.parser :as parser]
     [clojure.tools.logging :as log]
-    [dok-jam.dev-middleware :refer [wrap-dev]]))
+    [org.dokmelody.jam.dev-middleware :refer [wrap-dev]]))
 
 (def defaults
   {:init

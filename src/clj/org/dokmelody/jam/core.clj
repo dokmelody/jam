@@ -1,9 +1,9 @@
-(ns dok-jam.core
+(ns org.dokmelody.jam.core
   (:require
-    [dok-jam.handler :as handler]
-    [dok-jam.nrepl :as nrepl]
+    [org.dokmelody.jam.handler :as handler]
+    [org.dokmelody.jam.nrepl :as nrepl]
     [luminus.http-server :as http]
-    [dok-jam.config :refer [env]]
+    [org.dokmelody.jam.config :refer [env]]
     [clojure.tools.cli :refer [parse-opts]]
     [clojure.tools.logging :as log]
     [mount.core :as mount])
@@ -56,3 +56,4 @@
 
 (defn -main [& args]
   (start-app args))
+

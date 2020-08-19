@@ -1,12 +1,12 @@
-(ns dok-jam.handler
+(ns org.dokmelody.jam.handler
   (:require
-    [dok-jam.middleware :as middleware]
-    [dok-jam.layout :refer [error-page]]
-    [dok-jam.routes.home :refer [home-routes]]
+    [org.dokmelody.jam.middleware :as middleware]
+    [org.dokmelody.jam.layout :refer [error-page]]
+    [org.dokmelody.jam.routes.home :refer [home-routes]]
     [reitit.ring :as ring]
     [ring.middleware.content-type :refer [wrap-content-type]]
     [ring.middleware.webjars :refer [wrap-webjars]]
-    [dok-jam.env :refer [defaults]]
+    [org.dokmelody.jam.env :refer [defaults]]
     [mount.core :as mount]))
 
 (mount/defstate init-app

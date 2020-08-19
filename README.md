@@ -23,15 +23,16 @@ See ``docs`` directory for more info.
 
 ## Prerequisites
 
-You will need [Leiningen][1] 2.0 or above installed.
-
-[1]: https://github.com/technomancy/leiningen
+Java Maven.
 
 ## Running
 
-To start a web server for the application, run:
+TODO I'm switching to maven, so this is temporary
 
-    lein run 
+```
+mvn -q compile
+mvn -q exec:java -Dexec.mainClass=org.dokmelody.jam.Main
+```
 
 ## License
 

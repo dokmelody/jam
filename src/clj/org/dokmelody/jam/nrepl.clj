@@ -1,4 +1,4 @@
-(ns dok-jam.nrepl
+(ns org.dokmelody.jam.nrepl
   (:require
     [nrepl.server :as nrepl]
     [clojure.tools.logging :as log]))

@@ -1,7 +1,7 @@
 ;; SPDX-License-Identifier: MIT
 ;; Copyright (C) 2020 Massimo Zaniboni <mzan@dokmelody.org>
 
-(ns dok-jam.doknil.core
+(ns org.dokmelody.jam.doknil.core
   (:require [fogus.datalog.bacwn.impl.literals :as literals])
   (:use [fogus.datalog.bacwn :only (build-work-plan run-work-plan)]
         [fogus.datalog.bacwn.macros :only (<- ?- make-database)]
