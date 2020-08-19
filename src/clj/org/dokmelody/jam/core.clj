@@ -55,5 +55,6 @@
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
 (defn -main [& args]
+  (println args)
   (start-app args))
 

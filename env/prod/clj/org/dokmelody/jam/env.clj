@@ -4,8 +4,8 @@
 (def defaults
   {:init
    (fn []
-     (log/info "\n-=[dok-jam started successfully]=-"))
+     (log/info "\n-=[dokmelody-jam started successfully]=-"))
    :stop
    (fn []
-     (log/info "\n-=[dok-jam has shut down successfully]=-"))
+     (log/info "\n-=[dokmelody-jam has shut down successfully]=-"))
    :middleware identity})

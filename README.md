@@ -1,4 +1,4 @@
-# Dok-jam
+# DokMelody-Jam
 
 This is an initial prototype of Dok programming language (https://www.dokmelody.org), DokMelody IDE, and Doknil knowledge-base language, developed in Clojure for the 2020 https://repl.it Programming Language Jam.
 
@@ -23,15 +23,30 @@ See ``docs`` directory for more info.
 
 ## Prerequisites
 
-Java Maven.
+Java Maven 3.6
+
+Java JDK 11.
 
 ## Running
 
 TODO I'm switching to maven, so this is temporary
+TODO starts the server in an automatic way
 
 ```
-mvn -q compile
-mvn -q exec:java -Dexec.mainClass=org.dokmelody.jam.Main
+mvn exec:java
+```
+
+## Developing
+
+```
+mvn compile
+mvn exec:java -Denv=dev -Dconf=dev-config.edn
+```
+
+for tests
+
+```
+mvn TODO -Denv=dev
 ```
 
 ## License

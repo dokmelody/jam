@@ -8,8 +8,8 @@
   {:init
    (fn []
      (parser/cache-off!)
-     (log/info "\n-=[dok-jam started successfully using the development profile]=-"))
+     (log/info "\n-=[dokmelody-jam started successfully using the development profile]=-"))
    :stop
    (fn []
-     (log/info "\n-=[dok-jam has shut down successfully]=-"))
+     (log/info "\n-=[dokmelody-jam has shut down successfully]=-"))
    :middleware wrap-dev})

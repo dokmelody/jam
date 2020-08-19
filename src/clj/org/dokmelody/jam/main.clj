@@ -1,3 +1,5 @@
+;; TODO delete after migration to maven
+
 (ns org.dokmelody.jam.main)
 
 ;; TODO test functions

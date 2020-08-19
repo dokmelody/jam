@@ -29,5 +29,9 @@ public class Main {
         // Clojure can extend classes
         Object o = callClojure("org.dokmelody.jam.main", "create-timestamped-object");
         System.out.println("object toString returns " + o);
+
+        // Call the Clojure entry point
+        Callable mainFn = (Callable) callClojure("org.dokmelody.jam.core", "-main");
+        mainFn.call();
     }
 }

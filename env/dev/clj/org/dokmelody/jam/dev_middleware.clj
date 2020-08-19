@@ -8,4 +8,4 @@
   (-> handler
       wrap-reload
       wrap-error-page
-      (wrap-exceptions {:app-namespaces ['dok-jam]})))
+      (wrap-exceptions {:app-namespaces ['dokmelody-jam]})))
