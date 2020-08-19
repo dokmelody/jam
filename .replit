@@ -1,2 +1,2 @@
-language = "bash"
-run = ""
+language = "java10"
+run = "mvn compile exec:java -Denv=prod -Dconf=config-prod.edn"

@@ -1,4 +1,6 @@
-(defproject dok-jam "0.1.0-SNAPSHOT"
+;; TODO delete after complete porting to Maven
+
+(defproject dokmelody-jam "0.1.0-SNAPSHOT"
 
   :description "DokMelodyJam - alpha version for Programming Language Jam"
   :url "https://www.dokmelody.org"
@@ -41,14 +43,14 @@
   :test-paths ["test/clj"]
   :resource-paths ["resources"]
   :target-path "target/%s/"
-  :main ^:skip-aot dok-jam.core
+  :main ^:skip-aot org.dokmelody.jam.core
 
   :plugins [] 
 
   :profiles
   {:uberjar {:omit-source true
              :aot :all
-             :uberjar-name "dok-jam.jar"
+             :uberjar-name "dokmelody-jam.jar"
              :source-paths ["env/prod/clj" ]
              :resource-paths ["env/prod/resources"]}
 
@@ -56,12 +58,12 @@
    :test          [:project/dev :project/test :profiles/test]
 
    :project/dev  {:jvm-opts ["-Dconf=dev-config.edn" ]
-                  :dependencies [[pjstadig/humane-test-output "0.10.0"]
+                  :dependencies [pjstadig/humane-test-output ["0.10.0"]
                                  [prone "2020-01-17"]
                                  [ring/ring-devel "1.8.1"]
                                  [ring/ring-mock "0.4.0"]]
                   :plugins      [[com.jakemccrary/lein-test-refresh "0.24.1"]
-                                 [jonase/eastwood "0.3.5"]] 
+                                 [jonase/eastwood "0.3.5"]]
                   
                   :source-paths ["env/dev/clj" ]
                   :resource-paths ["env/dev/resources"]

@@ -1,4 +1,4 @@
-# Dok-jam
+# DokMelody-Jam
 
 This is an initial prototype of Dok programming language (https://www.dokmelody.org), DokMelody IDE, and Doknil knowledge-base language, developed in Clojure for the 2020 https://repl.it Programming Language Jam.
 
@@ -15,21 +15,63 @@ Use DokMelody for designing and improving Dok language, and this project, in "ea
 
 It is all in alpha/design/development state: many things can not work, all can change.
 
+Jam progress is monitored on https://repl.it/@DokLang/jam-roadmap#README.md
+
 ## Documentation
 
 See ``docs`` directory for more info.
 
 ## Prerequisites
 
-You will need [Leiningen][1] 2.0 or above installed.
+Java Maven 3.6
 
-[1]: https://github.com/technomancy/leiningen
+Java JDK 11.
 
 ## Running
 
-To start a web server for the application, run:
+```
+mvn compile exec:java -Denv=prod -Dconf=config-prod.edn
+```
 
-    lein run 
+A web server will listen on port 3000.
+
+### Running on Repl.it
+
+If you press the ``Run`` button, the command 
+
+```
+mvn compile exec:java -Denv=prod -Dconf=config-prod.edn
+```
+
+will be executed and 
+* inside repl.it VM a web server will listen on port 3000
+* repl.it will deploy an https server at address https://jam--doklang.repl.co/ that can be accessed from the external
+
+## Testing
+
+Unit and regression tests can be executed in this way:
+
+```
+mvn compile exec:java -Denv=test -Dconf=config-test.edn
+```
+
+## Developing
+
+For compiling only:
+
+```
+mvn compile -Denv=dev -Dconf=config-dev.edn
+```
+
+For compiling and running a web server on a local VM (outside repl.it):
+
+```
+mvn compile exec:java -Denv=dev -Dconf=config-dev.edn
+```
+
+A web server will listen on port 3000, and a Clojure nrepl on port 7000. Do not serve sensitive information because web errors will contains debug information.
+
+Whenever possible changes to Clojure code will be recompiled live.
 
 ## License
 
