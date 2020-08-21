@@ -31,7 +31,7 @@ Java JDK 11.
 
 ### On repl.it
 
-[![Run on Repl.it](https://repl.it/badge/github/DokLang/jam)](https://repl.it/github/DokLang/jam)
+[![Run on Repl.it](https://repl.it/badge/github/dokmelody/jam)](https://repl.it/github/dokmelody/jam)
 
 The ``Run`` button is associated to the CLI command
 
