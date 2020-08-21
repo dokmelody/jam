@@ -52,7 +52,7 @@ will be executed and
 Unit and regression tests can be executed in this way:
 
 ```
-mvn compile exec:java -Denv=test -Dconf=config-test.edn
+mvn compile exec:java -Denv=test -Dexec.cleanupDaemonThreads=false -Dconf=config-test.edn
 ```
 
 ## Developing

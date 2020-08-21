@@ -17,5 +17,6 @@ public class Test {
     }
     public static void main(String[] args) throws Exception {
         callClojure("org.dokmelody.jam.test.core", "-test-all");
+        callClojure("clojure.core", "shutdown-agents");
     }
 }
