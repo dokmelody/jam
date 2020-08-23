@@ -23,9 +23,8 @@ See ``docs`` directory for more info.
 
 ## Prerequisites
 
-Java Maven 3.6
-
-Java JDK 11.
+* Java Maven 3.6
+* Java JDK 11.
 
 ## Running
 

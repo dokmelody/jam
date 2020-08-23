@@ -13,31 +13,42 @@
 
 (def db
     (add-tuples doknil/schema
-                [:role-hierarchy :child-role-id :Issue :parent-role-id :RelatedTo]
+                [:role :id :Issue :parent :RelatedTo]
+                [:role :id :RelatedTo :parent nil]
+                
+                [:role :id :Department :parent nil]
+                [:role :id :Company :parent nil]
 
-                [:context-hierarchy :id :world-context :instance-id :world :child-hierarchy-id :nil]
+                [:branch :id :world :parent nil]
+                
+                [:cntx :id :cntx-world :branch :world :parent nil]
+                
+                [:isa-fact :id :fact-part-1 :cntx :cntx-world :instance :acme-corporation :role :Company :part nil]
+                [:isa-fact :id :fact-part-2 :cntx :cntx-world :instance :department-x :role :Department :part :acme-corporation]
 
-                [:part :child-instance-id :department-x :parent-instance-id :acme-corporation :context-hierarchy-id :world-context]
-
-                [:isa-fact :fact-id :fact-1 :instance-id :issue-1 :role-id :Issue :part-id :department-x :context-hierarchy-id :world-context]))
+                [:isa-fact :id :fact-1 :cntx :cntx-world :instance :issue-1 :role :Issue :part :department-x]))
 
 (deftest test-doknil
   (testing "Extensional fact"
     (is (= :fact-1 
         (get (first 
          (run-work-plan 
-           doknil/query-1 
+           doknil/query-isa-1 
            db 
-           {'??instance-id :issue-1
+           {'??branch :world
+            '??instance :issue-1
             '??role-id :Issue
-            '??context-id :world-context})) :fact)))))
+            })) :fact)))))
   
   (testing "Role hierarchy"
     (is (= :fact-1
            (get (first
-               (run-work-plan doknil/query-1 db {'??instance-id :issue-1
-                                                 '??role-id :RelatedTo
-                                                 '??context-id :world-context}))
+               (run-work-plan 
+                  doknil/query-isa-1 
+                  db 
+                  {'??branch :world
+                   '??instance :issue-1
+                   '??role :RelatedTo
+                  }))
                 :fact))))
-  
-     
+    

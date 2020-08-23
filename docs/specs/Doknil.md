@@ -7,13 +7,13 @@ Copyright (C) 2020 Massimo Zaniboni <mzan@dokmelody.org>
 
 Doknil is a relative simple (ontology language)[https://en.wikipedia.org/wiki/Ontology_language] for linking piece of information, and deriving useful facts. 
 
-It is more oriented towards expressing instances of a domain, than describing the derivation rules of complex domains. In fact in Doknil the derivation rules are few and fixed, and the user can not add more of them.
+It is more oriented towards expressing links between different entities of a domain, than deriving all attributes of entities, i.e. it is more a tool for human oriented navigation in a knowledge base, than a tool for describing all the information in a machine consumable format.
 
-From an expressive point of view, Doknil is less powerful than (OWL)[https://en.wikipedia.org/wiki/Web_Ontology_Language], but more powerful than (RDF)[https://en.wikipedia.org/wiki/Resource_Description_Framework]. Contrary to OWL, Doknil can manage directly contexts (i.e. facts that are true only inside a certain context).
+In Doknil the derivation rules are few and fixed, and the user can not add more of them. From an expressive point of view, Doknil is less powerful than (OWL)[https://en.wikipedia.org/wiki/Web_Ontology_Language], but more powerful than (RDF)[https://en.wikipedia.org/wiki/Resource_Description_Framework]. Contrary to OWL, Doknil can manage directly contexts (i.e. facts that are true only inside a certain context).
 
 ## Doknil semantic
 
-### Instances and Roles
+### Instances
 
 ```
 c isa Company
@@ -23,29 +23,91 @@ p isa Project of d
 i isa Issue of p
 ```
 
-Doknil has ``instances`` (i.e. cards in DokMoledy) that can assume ``roles`` (i.e. class or types of instances).
+``c``, ``d``, ``p`` and ``i`` are ``instances``:
+* they are entities, so with an identity
+* they are often associated to DokMelody ``cards``, and/or in general to some external object storing more attributes associated to the ``instance`` and representing its real content
+* they can have one or more ``role`` associated to some other entity, e.g. ``i`` plays the role of ``Issue`` respect instance ``p`` which plays the role of ``Project`` respect instance ``d`` which plays the role of ``Department`` respect instance ``c`` that is a ``Company``. Note that ``Company`` is still a role, but of the ``root`` instance.
 
-An ``instance`` can play a ``role`` for a certain instances. For example ``issueX isa Issue in projectY``. 
+### Roles
 
-``Roles`` can form an hierarchy, e.g. ``Task, Task/Issue, Task/Feature``.
+A ``role`` of an ``instance`` can be seen also as the type or class of the ``instance``.
 
-``Instances`` can have multiple roles.
+``Roles`` can form an hierarchy, e.g. 
 
-Instances used as "owners" (i.e. in the ``of ...`` part) can form an hieararchy. For example ``companyX, companyX/departmentY, companyX/projectZ``.
+```
+Task --> (
+  /Issue
+  /Feature
+)
+```
 
-Doknil queries and rules follow a predictable inference semantic:
-* if ``x`` plays a role ``R`` for an owner ``x/y``, then it plays the same role also for the parent of ``x`` (e.g. an issue of ``companyX/projectZ`` is an issue also for ``companyX``)
-* if ``x`` plays a role ``R1/R2``, then it plays also the role ``R1`` (e.g. if ``x`` is an ``Issue`` then it is also a ``Task``)
+``Feature`` (i.e. ``Task/Feature`` using the full role nome) is a more specific role of the more generic role ``Task``. 
 
-### Contexts
+### Owners
 
-Facts can be valid only inside a certain context (e.g. a certain domain, paper, author, company, department, project). Facts are propagated automatically parent to child contexts (e.g. a fact true for the world is true also for a companyX). Some facts can be explicitely negated in child contexts (e.g. a research project can not believe in a common assumption, and explore a different branch of reasoning). 
+The ``x isa R of y`` specifies also that ``x`` is an instance owned from (i.e. is part of) instance ``y``. 
 
-Contexts can form an hierarchy, for example ``/world/companyX/departmentY/workingGroupZ``. ``world`` is the root context and it can be omitted because it is implicit.
+An instance can have more than one direct owner. In this case the instance is considered shared. For example an issue shared between two different departments.
 
-Contexts can be used also for grouping facts of a certain domains of discourse, that can be later negated in another branchg context. 
+An instance can assume different roles for different owners. For example the same issue can be an issue and a cost for a company and a billable work for a support company.
 
-An example:
+### Derivation of intensional facts
+
+Extensional (base) facts are the facts directly declarated like ``i isa Issue of p``.
+
+Intensional (derived) facts can be derived by Doknil fixed and predictable semantic rules:
+* ``i isa Task of p`` because ``Issue`` is a child role of the parent role ``Task``
+* ``i isa Issue of c`` because ``i`` is part of ``d`` that is part of ``c``
+* ``i isa Task of c`` for the same reason of the first point
+* and so on...
+
+### Attributes vs links
+
+A link (i.e. a relationships in graph-databases) connects two instances/cards using the( Doknil semantic and derivation rules. In Doknil a link is always a relationship between an ``instance`` and another ``owner`` instance (that can be also ``root`` if not specified)according a specific ``role``.
+
+An attribute (i.e. a property in graph-database) is a named property of an instance containing usually a value, but also a reference to another instance.
+
+In Doknil there are only links. Instances can have attributes, but they are managed externally to Doknil, in the host system containing effective representation of instances. Optionally an instance can generate automatically links, according its content, expecially if these links must follow the derivation semantic of Doknil. In this way queries are simpler and more coherent because they can filter only on Doknil links.
+
+### Hierarchical contexts
+
+Facts can be valid only inside a certain ``context`` (e.g. a certain domain, paper, author, company, department, project). ``Contexts`` can form an hierarchy. ``world`` is the root context.
+
+Facts are propagated automatically from parent to child contexts, but not from children to parent context.
+
+```
+world --> {
+  mars isa Planet
+}
+
+world/lordOfTheRings --> {
+  gondor isa City
+}
+
+world -->
+  asimov --> {
+    foundationSeries --> {
+      trantor isa Planet
+    }
+  }
+}
+```
+
+So in ``world/lordOfTheRings`` context ``mars`` is a planet, and ``gondor`` isa city, but in ``world/asimov/foundationSeries`` ``gondor`` is not a city because ``world/lordOfTheRings`` is not one of its parents.
+
+### Group contexts
+
+A set of facts inside a context can be grouped inside a common group (i.e. a certain domain of discourse), that can be later negated in another branch context. 
+
+A group context does not change the semantic of fact derivations in other contexts, because it does not change context hierarchy. Facts can be always refactored and grouped in a new group context without changing the semantic of other already specified contexts. This is intentional and useful for branching contexts.
+
+Group contexts can form an hierarchy.
+
+A full context is formed by a context hierarchy followed by an optional group context hierarchy. Something like ``c1/c2/c3.g1.g2.g3``. 
+
+### Branch contexts
+
+A child context can exclude to import facts from a parent context using something like ``!exclude some/parent/context.some.group.context``. 
 
 ```
 City
@@ -54,62 +116,72 @@ City/Capital
 Nation
 Continent
 
-world/places --> {
-  southAmerica isa Continent
-  cile isa Nation of southAmerica
-  santiago isa Capital of cile
+world --> {
+  mars isa Planet
+  earth isa Planet
+
+  .earth.places --> {
+    southAmerica isa Continent
+    cile isa Nation of southAmerica
+    santiago isa Capital of cile
+  }
 }
 
-lordOfTheRings/places --> {
-  !replaceContext world/places
+world/lordOfTheRings.places --> {
+  !exclude world.earth.places
 
   gondor isa City
 }
 ```
 
-Contexts can share same set of facts
+In this example ``santiago`` is not a city in context ``lordOfTheRings`` context, because it overrides the facts about ``world.earth.places``. But ``mars`` is still a planet also in ``lordOfTheRings`` context.
+
+### Reusing context facts
+
+Facts specified in a distinct (i.e. non-parent) context can be imported in a new context using something like ``!include some/distinct/context.some.group``.
 
 ```
-lordOfTheRings/places --> {
-  !overrideContext world/places
-
-  gondor isa City
-}
-
-hobbit/places --> {
-  !includeContext lordOfTheRigs/places
+world/thesisOnTolkien --> {
+  !include world/lordOfTheRings.places
 }
 ```
+
+Also in this case if one see that some group of facts can be reused, he can freely refactor the source context adding a group (because the semantic of the source context will not change), and then import the facts in the target context.
+
+### Context information propagation
+
+* Facts inside a parent context are also facts of the child context (e.g. ``c1`` facts are also facts of ``c1/c2``).
+* Facts of a parent group context are also facts of a child group context (e.g. ``c1.g1`` facts are also facts of ``c1.g1.g2``).
+* If a target context include/exclude facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included/excluded.
+* If a target context include/exclude facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included/excluded, while there is no effect on distinct source contexts like ``c1/c2`` and ``c1.g3``.
 
 ### Negation
 
 Doknil assumes (closed-world-assumption)[https://en.wikipedia.org/wiki/Closed-world_assumption], i.e. what is not currently known to be true, is false.
 
-Sometime the DokMelody IDE can manage at the UI level some roles according the  (open-world-assumption)[https://en.wikipedia.org/wiki/Open-world_assumption], i.e. that the truth value of a statement may be true irrespective of whether or not it is known to be true. But this is not formalized.
+Sometime the DokMelody IDE can manage at the UI level some roles according the  (open-world-assumption)[https://en.wikipedia.org/wiki/Open-world_assumption], i.e. that the truth value of a statement may be true irrespective of whether or not it is known to be true. But this is not formalized in Doknil, and it is only implicitely managed from the DokMelody UI.
 
-Despite the closed-world-assumption, Doknil can support also explicit negation, using the contexts, and in particular the ``!replaceContext ..`` statement. So a context can explicitely negate facts asserted in a context. This information is used for sure during derivation of facts, but it can be used also from the DokMelody IDE for showing in a clear way the differences of a branch context respect its parent context.
+Despite the closed-world-assumption, Doknil can support also explicit negation, using the contexts, and in particular the ``!exclude`` statement. So a context can explicitely negate facts asserted in a group context. This information is used for sure during derivation of facts, but it can be used also from the DokMelody IDE for showing in a clear way the differences between two contexts.
 
-### Attributes vs links
+### Reification
 
-A link (i.e. a relationships in graph-databases) connects two instances/cards using the Doknil semantic and derivation rules.
+Doknil does not support reification, so facts can not be subject of discourse. This simplify the semantic of the language.
 
-An attribute (i.e. a property in graph-database) is a named property of an instance containing usually a value, but also a reference to another instance.
+### Meta information
 
-In Doknil there are only links. Instances can have attributes, but they are managed externally to Doknil, in the host system containing effective representation of instances. Optionally an instance can generate automatically links, according its content, expecially if these links must follow the derivation semantic of Doknil. In this way queries are simpler and coherent.
+``contexts`` and ``roles`` can be used as ``instances`` and so they can be used as subjects of new links.
 
-### Single hiearrchy for Owner and Role
-
-An ``Owner`` in the ``of ...`` part can be only in one hiearchy. This because it is error-prone classyfing ah hiearchy of owner in different ways.
-
-A ``Role`` can be part only of one hierarchy. 
-
-### Multiple hierarchies for Contexts
-
-A ``Context`` can be in more than one hierachy. In this way one can classify contexts in different logical ways. For example the same author of a paper can be part of different organizations.
+This is useful in particular on the UI/IDE side for grouping roles and contexts according different aspects.
 
 ## Doknil syntax
 
-Like in case of [RDF](https://en.wikipedia.org/wiki/RDF_query_language) there can be different syntaxes, e.g. inside Dok code, inside Clojure code, and so on.
+Like in case of [RDF](https://en.wikipedia.org/wiki/RDF_query_language) there can be different syntaxes, e.g. inside Dok code, inside Clojure code, and so on. The important thing is the semantic and the related concepts.
+
+The previous examples were expressed in Dok-like syntax.
+
+### Namespaces
+
+``instances``, ``contexts`` and ``roles`` share the same namespace, i.e. there can be an instance and a context both named ``world``. ``Roles`` starsts with capital letters, so in practice there can not be clashes with ``instances`` and ``contexts``.
 
 ## Validation using PMBOK specification
 
