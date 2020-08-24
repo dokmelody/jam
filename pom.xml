@@ -261,6 +261,11 @@
       <version>0.7.0</version>
     </dependency>
     <dependency>
+      <groupId>refactor-nrepl</groupId>
+      <artifactId>refactor-nrepl</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
       <version>1.10.1</version>

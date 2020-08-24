@@ -283,3 +283,4 @@
     (build-work-plan 
        rules 
      (?- :isa :branch '??branch :instance '??instance :role '??role :part ?part :fact ?fact)))
+
