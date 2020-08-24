@@ -55,16 +55,6 @@
 ;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
 ;; TODO create a lookup function for passing from hierarchy names to id
 
-;; TODO say this in documentation
-;; NOTE: in a cntx like ``x/y.a --> { !exclude x.b }``, the effect of exclusion
-;; is on all groups of branch ``x/y``, and ``x.b`` is a group used for
-;; identifying the group of facts of branch ``x`` that are not visible inside
-;; branch ``x/y``. So visibility is a property of a branch, while the group
-;; is used only for specifying wich facts are not visible.
-;;
-;; This info will be used later, in a stratified negation,
-;; for avoiding excluded path.
-
 ;; TODO make sure to register also roles without a parent
 ;; TODO it is important showing explicitely overriden contexts
 ;; TODO in queries one can only specify branches without groups
@@ -77,6 +67,8 @@
 ;; TODO ``x is Related to p`` does not form a ``x is PartOf p`` implicit hierarchy
 ;; So probably only the ``of p`` must generate ``PartOf`` implicit relations.
 ;; TODO generate explicit ``PartOf`` links when a role defines also this.
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprotocol ACard
   "A piece of short information"
@@ -92,6 +84,7 @@
   (object [this])
   (context [this]))
 
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; These are the base (extensional) facts of the KB.
 (def schema
   (make-database
@@ -117,13 +110,17 @@
    (relation :exclude-cntx [:dst-cntx :src-cntx])
    ;; Something like ``dstContext.some.group --> { !exclude some/source/cntx.another.group.cntx }``
 
-   (relation :isa-fact [:id :cntx :instance :role :part])
+   (relation :isa-fact [:id :cntx :instance :role :complement :object])
    ;; Store the Role relationship of a fact.
    ;; Something like ``world/x/y.a.b --> { e isa Something for c }``
-   ;; :part is the owner/part-of. It is set to nil if it is not specified.
+   ;; :complement is something like :for, :of, :to. It is set to nil if it is not specified.
+   ;; It is set to :of for specifying parts.
+   ;;
+   ;; :object is set to nil if it is not specified.
 
    ))
 
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; These rules derive the intensional facts, using the Doknil semantic.
 ;;
 ;; Derived facts must take in consideration the branch of the query,
@@ -247,7 +244,8 @@
    (<- (:is-direct-part-of :branch ?branch :instance ?instance :owner ?owner :fact ?fact)
 
        (:cntx-rec3 :branch ?branch :cntx ?cntx)
-       (:isa-fact :id ?fact :cntx ?cntx :instance ?instance :role ?ignore2 :part ?owner)
+       (:isa-fact :id ?fact :cntx ?cntx :instance ?instance :role ?ignore2 :complement ?complement :object ?owner)
+       (if = :of ?complement)
        (if some? ?owner))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -257,30 +255,31 @@
    ;; Roles hierarchy is applied later, for reducing paths to consider.
 
    ; Consider the cntx hierarchy.
-   (<- (:isa-rec1 :branch ?branch :instance ?instance :role ?role :part ?part :fact ?fact)
+   (<- (:isa-rec1 :branch ?branch :instance ?instance :role ?role :object ?object :fact ?fact)
 
        (:cntx-rec3 :branch ?branch :cntx ?cntx)
-       (:isa-fact :id ?fact :cntx ?cntx :instance ?instance :role ?role :part ?part))
+       (:isa-fact :id ?fact :cntx ?cntx :instance ?instance :role ?role :complement ?ignore1 :object ?object))
 
    ; Consider the ``part-of`` hierarchy, applying also transitive closure.
-   (<- (:isa-rec1 :branch ?branch :instance ?instance :role ?role :part ?part2 :fact ?fact)
+   (<- (:isa-rec1 :branch ?branch :instance ?instance :role ?role :object ?object2 :fact ?fact)
 
-       (:isa-rec1 :branch ?branch :instance ?instance :role ?role :part ?part1 :fact ?fact)
-       (:is-direct-part-of :branch ?branch :instance ?part1 :owner ?part2 :fact ?ignore2))
+       (:isa-rec1 :branch ?branch :instance ?instance :role ?role :object ?object1 :fact ?fact)
+       (:is-direct-part-of :branch ?branch :instance ?object1 :owner ?object2 :fact ?ignore2))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; Extend :isa-rec1 with transitive closure on hierarchy of roles.
 
+   (<- (:isa :branch ?branch :instance ?instance :role ?role2 :object ?object :fact ?fact)
 
-   (<- (:isa :branch ?branch :instance ?instance :role ?role2 :part ?part :fact ?fact)
-
-       (:isa-rec1 :branch ?branch :instance ?instance :role ?role1 :part ?part :fact ?fact)
+       (:isa-rec1 :branch ?branch :instance ?instance :role ?role1 :object ?object :fact ?fact)
        (:role-rec :role ?role1 :parent-role ?role2))
    
    ))
 
-  (def query-isa-1
-    (build-work-plan 
-       rules 
-     (?- :isa :branch '??branch :instance '??instance :role '??role :part ?part :fact ?fact)))
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Queries
 
+(def query-isa-1
+  (build-work-plan
+     rules
+     (?- :isa :branch '??branch :instance '??instance :role '??role :object ?object :fact ?fact)))

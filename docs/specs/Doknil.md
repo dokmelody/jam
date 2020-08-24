@@ -7,9 +7,9 @@ Copyright (C) 2020 Massimo Zaniboni <mzan@dokmelody.org>
 
 Doknil is a relative simple (ontology language)[https://en.wikipedia.org/wiki/Ontology_language] for linking piece of information, and deriving useful facts. 
 
-It is more oriented towards expressing links between different entities of a domain, than deriving all attributes of entities, i.e. it is more a tool for human oriented navigation in a knowledge base, than a tool for describing all the information in a machine consumable format.
+Doknil is more oriented towards expressing links between different entities of a domain, than deriving all attributes of entities, i.e. it is more a tool for human oriented navigation in a knowledge base, than a tool for describing all the information in a machine processable format.
 
-In Doknil the derivation rules are few and fixed, and the user can not add more of them. From an expressive point of view, Doknil is less powerful than (OWL)[https://en.wikipedia.org/wiki/Web_Ontology_Language], but more powerful than (RDF)[https://en.wikipedia.org/wiki/Resource_Description_Framework]. Contrary to OWL, Doknil can manage directly contexts (i.e. facts that are true only inside a certain context).
+In Doknil the derivation rules are few and fixed, and the user can not add new derivation rules. From an expressive point of view, Doknil is less powerful than (OWL)[https://en.wikipedia.org/wiki/Web_Ontology_Language], but more powerful than (RDF)[https://en.wikipedia.org/wiki/Resource_Description_Framework]. Contrary to OWL, Doknil can manage directly contexts (i.e. facts that are true only inside a certain context).
 
 ## Doknil semantic
 
@@ -21,16 +21,25 @@ d isa Department of c
 p isa Project of d
 
 i isa Issue of p
+
+k isa Document
+k is Related to i
 ```
 
-``c``, ``d``, ``p`` and ``i`` are ``instances``:
-* they are entities, so with an identity
-* they are often associated to DokMelody ``cards``, and/or in general to some external object storing more attributes associated to the ``instance`` and representing its real content
-* they can have one or more ``role`` associated to some other entity, e.g. ``i`` plays the role of ``Issue`` respect instance ``p`` which plays the role of ``Project`` respect instance ``d`` which plays the role of ``Department`` respect instance ``c`` that is a ``Company``. Note that ``Company`` is still a role, but of the ``root`` instance.
+``c``, ``d``, ``p``, ``k`` and ``i`` are ``instances``:
+* they are entities, so with an identity, and internal attributes that can change
+* they are often associated to DokMelody ``cards``, and/or in general to some external object storing internal attributes associated to the ``instance`` and representing its real content
+* they can have one or more ``role`` associated to some other entities, e.g. ``i`` plays the role of ``Issue`` respect instance ``p`` which plays the role of ``Project`` respect instance ``d`` which plays the role of ``Department`` respect instance ``c`` that is a ``Company``. Note that ``Company`` is still a role, but of the ``root`` instance.
+
+### Subject
+
+In a fact like ``i isa Issue of p``, ``i`` is the ``subject`` of the fact, and it is obviously an ``instance``.
 
 ### Roles
 
-A ``role`` of an ``instance`` can be seen also as the type or class of the ``instance``.
+In a fact like ``i isa Issue of p``, ``Issue`` is a ``Role``. A ``role`` can be seen also as the type of the ``subject``.
+
+A ``subject`` can assume different roles for different owners. For example the same issue can be an issue and a cost for a company and a billable work for a support company.
 
 ``Roles`` can form an hierarchy, e.g. 
 
@@ -43,23 +52,25 @@ Task --> (
 
 ``Feature`` (i.e. ``Task/Feature`` using the full role nome) is a more specific role of the more generic role ``Task``. 
 
-### Owners
+In Doknil a fact about a specific role is also a fact about the more generic role. For example if ``x isa Feature of p``, then ``x isa Task of p``.
 
-The ``x isa R of y`` specifies also that ``x`` is an instance owned from (i.e. is part of) instance ``y``. 
+### Object complements
 
-An instance can have more than one direct owner. In this case the instance is considered shared. For example an issue shared between two different departments.
+In a fact like ``i isa Issue of p``, ``p`` is the object ``complement``. It is an instance for which ``i`` plays the role of ``Issue``.
 
-An instance can assume different roles for different owners. For example the same issue can be an issue and a cost for a company and a billable work for a support company.
+The fact can use different syntax patterns like ``... of p``, ``... respect p``, ``... to p``, ``... for p`` etc..
 
-### Derivation of intensional facts
+### Parts
 
-Extensional (base) facts are the facts directly declarated like ``i isa Issue of p``.
+A fact like ``x isa R of y`` specifies also that ``x`` is part of ``y``. ``y`` is always an object ``complement`` and ``x`` is the subject. But a new implicit fact like ``x is Part of y`` is derived.
 
-Intensional (derived) facts can be derived by Doknil fixed and predictable semantic rules:
-* ``i isa Task of p`` because ``Issue`` is a child role of the parent role ``Task``
-* ``i isa Issue of c`` because ``i`` is part of ``d`` that is part of ``c``
-* ``i isa Task of c`` for the same reason of the first point
-* and so on...
+Parts are defined only using the ``... of p`` syntax pattern. So the ``of`` is mandatory. All other forms like ``to``, ``respect`` and so on, do not introduce a part/owner relationship.
+
+An instance can be part of different owners, for example an issue shared between two different departments.
+
+Every time there is pattern like ``s isa Role of p``, with ``... of p``, then ``s`` is considered part of ``p``.
+
+Parts are important because in Doknil a fact of a part is also a fact for the owner of the part. For example given an hierarchy of parts ``c/d/p`` (``company/ department/project``), the fact ``i isa Issue of p`` derives also the facts ``i isa Issue of d`` and ``i isa Issue of c``.
 
 ### Attributes vs links
 
@@ -148,6 +159,31 @@ world/thesisOnTolkien --> {
 
 Also in this case if one see that some group of facts can be reused, he can freely refactor the source context adding a group (because the semantic of the source context will not change), and then import the facts in the target context.
 
+### Context include vs exclude 
+
+``!include`` specifies a context on a distinct path, because parent context are included by default (i.e. a fact of parent context is also a fact of a child context).
+
+``!exclude`` specifies a parent context, because non parent context are excluded by default, and don't need it.
+
+So the contexts specified in ``!include`` and ``!exclude`` are always distinct.
+
+### Context include and exclude affect the entire new defined context
+
+Given something like
+
+```
+world/someNewContext.someGroup --> { 
+  !include someExternalContext.someGroup
+  !exclude world.places
+
+  someSubect isa SomeRole for someObject
+} 
+```
+
+the ``!include`` and ``!exclude`` will work on entire ``someNewContext`` and not only ``someNewContext.someGroup``, because every group of ``someNewContext`` is affected by the defined facts.
+
+The ``someNewContext.someGroup`` is used only for adding new facts into ``someGroup``group.
+
 ### Context information propagation
 
 * Facts inside a parent context are also facts of the child context (e.g. ``c1`` facts are also facts of ``c1/c2``).
@@ -182,6 +218,38 @@ The previous examples were expressed in Dok-like syntax.
 ### Namespaces
 
 ``instances``, ``contexts`` and ``roles`` share the same namespace, i.e. there can be an instance and a context both named ``world``. ``Roles`` starsts with capital letters, so in practice there can not be clashes with ``instances`` and ``contexts``.
+
+## Example of a Doknil schema
+
+### Design principles
+
+Doknil schema should be easy to define because there are usually no alternative ways to express them:
+* a ``role`` has no inverse role, while in RDF and OWL a property can have an inverse property
+* a ``subject`` is always the most specific entity respect the ``part`` or the ``complement``, so the direction is clear. Put in other words: a subject usually plays a specific role in a bigger organization/domain/environment and not vice versa 
+* a ``context`` can not be modelled like a ``part`` because in a context facts are propagated from root context to most specific context and they often plays the role of branches, while in part facts are prapagated from most specific part to root part
+
+### Example
+
+```
+garbageCollection is Part of memoryManagement
+referenceCounting is Part of memoryManagement
+```
+
+This must be clearly modelled as ``part`` because every property of ``garbageCollection`` is also a property of ``memoryManagement``.
+
+```
+garbageCollection isa PossibleSolution for safety
+```
+
+This is not a part relationship. ``safety`` is a more broad concept respect ``garbageCollection`` so ``safety`` is the ``complement`` and ``garbageCollection`` the subject. 
+
+```
+jvm --> {
+  garbageCollection isa Solution for safety
+}
+```
+
+``jvm`` is a context because every fact inside it, it is not true for parent contexts (i.e. not for all other run-times ``garbageCollection`` is an adopted solution), while it is true for all contexts derived from ``jvm``, for example ``jvm/oracle``, ``jvm/openJ9``. In the few cases where some fact asserted in ``jvm`` context is not true, there are negation and branches that can be used.
 
 ## Validation using PMBOK specification
 

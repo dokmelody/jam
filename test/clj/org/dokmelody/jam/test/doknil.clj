@@ -23,10 +23,10 @@
                 
                 [:cntx :id :cntx-world :branch :world :parent nil]
                 
-                [:isa-fact :id :fact-part-1 :cntx :cntx-world :instance :acme-corporation :role :Company :part nil]
-                [:isa-fact :id :fact-part-2 :cntx :cntx-world :instance :department-x :role :Department :part :acme-corporation]
+                [:isa-fact :id :fact-part-1 :cntx :cntx-world :instance :acme-corporation :role :Company :complement :of :object nil]
+                [:isa-fact :id :fact-part-2 :cntx :cntx-world :instance :department-x :role :Department :complement :of :object :acme-corporation]
 
-                [:isa-fact :id :fact-1 :cntx :cntx-world :instance :issue-1 :role :Issue :part :department-x]))
+                [:isa-fact :id :fact-1 :cntx :cntx-world :instance :issue-1 :role :Issue :complement :of :object :department-x]))
 
 (deftest test-doknil
   (testing "Extensional fact"
@@ -51,4 +51,3 @@
                    '??role :RelatedTo
                   }))
                 :fact))))
-    
