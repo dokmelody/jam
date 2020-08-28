@@ -1,12 +1,12 @@
-/target
-/lib
-/classes
-/checkouts
-*.jar
-*.class
-/.lein-*
-profiles.clj
-/.env
-.nrepl-port
-/node_modules
-/log
+# Racket compiled files
+compiled/
+# Generated documentation
+/doc/
+
+# common backups, autosaves, lock files, OS meta-files
+*~
+\#*
+.#*
+.DS_Store
+*.bak
+TAGS

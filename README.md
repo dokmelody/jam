@@ -1,6 +1,8 @@
-# DokMelody-Jam
+# DokMelody-repl-it-jam
 
 This is an initial prototype of Dok programming language (https://www.dokmelody.org), DokMelody IDE, and Doknil knowledge-base language, developed in Clojure for the 2020 https://repl.it Programming Language Jam.
+
+TODO in flux from Clojure to Racket code base!
 
 ## Mission
 

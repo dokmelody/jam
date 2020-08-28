@@ -1,17 +1,15 @@
 # Nix dependencies for developing DokMelody-Jam
 #
-# NOTE: Nix has no good support for Java and Maven,
-# so it will install Maven and then Maven will install in ``~/.m2`` directory
-# following the Java approach and not the Nix-way.
-
 with import <nixpkgs> {};
+
+# NOTE: install only Racket, then other Racket packages will be installed in the Racket way
+# using raco and working on local directories.
 
 runCommand "dummy" {
      buildInputs = [
        haskellPackages.lentil
        wget
 
-       jdk11_headless
-       maven
+       racket
     ];
 } ""
