@@ -9,46 +9,28 @@
         [fogus.datalog.bacwn.impl.database :only (add-tuples)]))
 
 ;; TODO find a way to link a clojure value/object to a database statment
-;; TODO insert the distance of CONTEXT and PARENT in the derived relation
+;; MAYBE insert the distance of CONTEXT and PARENT in the derived relation
 ;; TODO select the nearest card in the UI using the DISTANCE attribute
-;; TODO a card is created by code, because I can use literate programming and templates
 ;; TODO a card can read from a file on resource directories
 ;; TODO the card-db is a function returning a card as a value, given a card name/index
 ;; TODO caching of cards allows to avoid regeneration of all cards
 ;; TODO order also relations by transitive closure
 ;; TODO cache/memoize the generation of a card
-;; TODO define a syntax for the language
 ;; TODO store facts inside resources or similar
-;; TODO download them
-;; TODO to be fair some facts are intensional and it is important also using Clojure code
-;; so the syntax will be readable Clojure code
-;; MAYBE during cards creation manage CONTEXT as a dynamic attribute
-;; TODO cards can be created combining chunks of code, in literate-programming style.
 ;; TODO during reading the title include the context "R1/R0" with "R0" being the parent
-;; TODO a CARD can be defined, but until it is not used in a CONTEXT, its facts are not generated
-;; TODO Doknil will use a Clojure-like syntax when expressed in Clojure
-;; ;; TODO create a map with complete-hiearchy as a vector and used as key, and the ``context-hierarchy-id`` as value.
+;; TODO create a map with complete-hiearchy as a vector and used as key, and the ``context-hierarchy-id`` as value.
 ;; It will be used for creating new contexts on demand.
 ;; Then they will be inserted exploded inside ``doknil-db``.
 ;; TODO find if Refs, Vars or Atoms must be used for adding new facts inside doknil-db at run-time
 ;; MAYBE make the same thing for part and role hierarchies
 ;;
-;; TODO I'm interested to direct-instances of context and part
-;; TODO use the fact-id for returning the more precise fact of a rule
-;;
 ;; TODO store in a map/db the assocation between key and card object
-;; TODO support current owner and role and context as dynamic attribute during declaration
 ;;
-;; TODO define a Doknil DSL in Clojure for asserting facts and querying data that is easy to use,
-;; because the Datalog DSL is not very readable and too much generic
 ;; TODO add index later to the db schema, according the type of queries to do
 ;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
 ;; or use instead an hash map of the complete hiearchy
 ;; TODO use a defalt NULL/nil value for some of the specified relations
 ;; TODO when a new hierarchy is added, then all sub-hierarchies (if news) are added
-;; TODO find a way for saying that a certain part of a company or similar believe in things different (like context)
-;; MAYBE enforce a rule that all facts about a part and every part of his hierachy had to be in the same context
-;; TODO supports context that are hypothetical and not part of the world/root context
 ;; TODO store in a data structure apart the associations between ids and complete hierarchy name
 ;; TODO use this same structure for lookup during parsing
 ;; TODO the same for roles, and all other Doknil elements
@@ -58,17 +40,11 @@
 ;; TODO make sure to register also roles without a parent
 ;; TODO it is important showing explicitely overriden contexts
 ;; TODO in queries one can only specify branches without groups
-;; TODO branch.group are used only in meta-navigation inside the KB
-;; for editing it.
 
-;; TODO expose ``is-direct-part-of`` query to the external
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 
-;; TODO ``x is Related to p`` does not form a ``x is PartOf p`` implicit hierarchy
-;; So probably only the ``of p`` must generate ``PartOf`` implicit relations.
-;; TODO generate explicit ``PartOf`` links when a role defines also this.
-
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DokMelody UI elements
 
 (defprotocol ACard
   "A piece of short information"
@@ -89,34 +65,34 @@
 (def schema
   (make-database
 
-   (relation :role [:id :parent])
    ;; Store a role hierarchy like ``Task/Issue``.
    ;; A role has a unique parent.
    ;; For roles without a parent set :parent-id to nil.
+   (relation :role [:id :parent])
 
-   (relation :branch [:id :parent])
    ;; The branch of a context. Something like ``world/x/y``.
    ;; The root context branch `world` has :parent set to nil, and the special id 0
+   (relation :branch [:id :parent])
 
-   (relation :cntx [:id :branch :parent])
    ;; A cntx branch and an optional group.
    ;; Something like ``world/x/y.a.b.c``.
    ;; The :parent manage only the group part, so the :branch must remain constant
    ;; in the same hierarchy.
+   (relation :cntx [:id :branch :parent])
 
-   (relation :include-cntx [:dst-cntx :src-cntx])
    ;; Something like ``dstContext.some.group --> { !include some/source/cntx.another.group.cntx }``
+   (relation :include-cntx [:dst-cntx :src-cntx])
 
-   (relation :exclude-cntx [:dst-cntx :src-cntx])
    ;; Something like ``dstContext.some.group --> { !exclude some/source/cntx.another.group.cntx }``
+   (relation :exclude-cntx [:dst-cntx :src-cntx])
 
-   (relation :isa-fact [:id :cntx :instance :role :complement :object])
    ;; Store the Role relationship of a fact.
    ;; Something like ``world/x/y.a.b --> { e isa Something for c }``
    ;; :complement is something like :for, :of, :to. It is set to nil if it is not specified.
    ;; It is set to :of for specifying parts.
    ;;
    ;; :object is set to nil if it is not specified.
+   (relation :isa-fact [:id :cntx :instance :role :complement :object])
 
    ))
 

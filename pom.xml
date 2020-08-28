@@ -345,6 +345,17 @@
       <artifactId>ring-mock</artifactId>
       <version>0.4.0</version>
     </dependency>
+    <dependency>
+      <groupId>zip-visit</groupId>
+      <artifactId>zip-visit</artifactId>
+      <version>1.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>squarepeg</groupId>
+      <artifactId>squarepeg</artifactId>
+      <version>0.6.1</version>
+    </dependency>
   </dependencies>
+
 </project>
 
