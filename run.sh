@@ -32,13 +32,52 @@ if [[ "$#" -eq 1 ]]; then
   esac
 fi
 
-if which racket > /dev/null; then
+if which racket > /dev/null 2>&1; then
   echo "Installed" > /dev/null
 else
   echo "racket is not installed" 1>&2
   exit 1
 fi
 
-raco $OPTS pkg install --auto || true
+update_exec_racket () {
+  sed -i 's/bindir=\"\/usr\/bin\"/bindir=\"\/home\/runner\/\.apt\/usr\/bin\"/g' /home/runner/.apt/usr/bin/$1
+
+  sed -i 's/librktdir=\"\/usr\/lib\/racket\"/librktdir=\"\/home\/runner\/\.apt\/usr\/lib\/racket\"/g' /home/runner/.apt/usr/bin/$1
+
+  sed -i 's/exec \".{bindir}\/racket\"/exec \"\/home\/runner\/\.apt\/usr\/bin\/racket\" --config \/home\/runner\/jam\/repl-it-conf --collects \/home\/runner\/.apt\/usr\/share\/racket\/collects /g' /home/runner/.apt/usr/bin/$1
+}
+
+if raco help > /dev/null 2>&1; then
+  echo "Already patched" > /dev/null
+else
+  update_exec_racket "drracket"
+  update_exec_racket "mred-text"
+  update_exec_racket "mztext"
+  update_exec_racket "plt-r5rs"
+  update_exec_racket "raco"
+  update_exec_racket "slideshow"
+  update_exec_racket "gracket"
+  update_exec_racket "mzc"
+  update_exec_racket "pdf-slatex"
+  update_exec_racket "plt-r6rs"
+  update_exec_racket "scribble"
+  update_exec_racket "swindle"
+  update_exec_racket "gracket-text"
+  update_exec_racket "mzpp"
+  update_exec_racket "plt-games"
+  update_exec_racket "plt-web-server"
+  update_exec_racket "setup-plt"
+  update_exec_racket "plt-help"
+  update_exec_racket "slatex"
+fi
+
+if raco help > /dev/null 2>&1; then
+  echo "raco can work" > /dev/null
+else
+  echo "raco can not work" 1>&2
+  exit 1
+fi
+
+raco pkg install --auto > /dev/null 2>&1; || true
 
 racket $OPTS dokmelody/web-app.rkt
