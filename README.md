@@ -31,7 +31,7 @@ The Repl.it ``Run`` button is associated to the command ``bash ./run.sh --on-rep
 
 ### On local system
 
-Make sure to have a recent version of Racket installed. Then execute ``./run.sh`` or inspect the content of this file for more info.
+Make sure to have a recent version of Racket installed. Then execute ``bash run.sh`` or inspect the content of this file for more info.
 
 ## Testing
 
