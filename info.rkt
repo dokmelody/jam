@@ -11,10 +11,9 @@
 
 (define deps '("base"
                "datalog"
-               "browser"
                "web-server"
                "nanopass"
                "scribble-lib"
-               "racknuti-lib"))
+               "rackunit"))
 
 (define test-include-paths '("tests"))

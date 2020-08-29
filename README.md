@@ -2,8 +2,6 @@
 
 This is an initial prototype of Dok programming language (https://www.dokmelody.org), DokMelody IDE, and Doknil knowledge-base language, developed in Clojure for the 2020 https://repl.it Programming Language Jam.
 
-TODO in flux from Clojure to Racket code base!
-
 ## Mission
 
 Win the Jam! :-)
@@ -23,57 +21,23 @@ Jam progress is monitored on https://repl.it/@DokLang/jam-roadmap#README.md
 
 See ``docs`` directory for more info.
 
-## Prerequisites
-
-* Java Maven 3.6
-* Java JDK 11.
-
 ## Running
 
-### On repl.it
+### On Repl.it
 
 [![Run on Repl.it](https://repl.it/badge/github/dokmelody/jam)](https://repl.it/github/dokmelody/jam)
 
-The ``Run`` button is associated to the CLI command
+The Repl.it ``Run`` button is associated to the command ``bash ./run.sh --on-repl-it``. It will install missing packages and launch a web server listening on a local port, and that can be accessed externally from an https URL provided by repl.it after it starts.
 
-```
-mvn compile exec:java -Denv=prod -Dconf=config-prod.edn
-```
+### On local system
 
-A web server will listen on port 3000, and it can be accessed externally from an https URL provided by repl.it after it starts.
-
-### Locally
-
-```
-mvn compile exec:java -Denv=prod -Dconf=config-prod.edn
-```
-
-A web server will listen on port 3000.
+Make sure to have a recent version of Racket installed. Then execute ``./run.sh`` or inspect the content of this file for more info.
 
 ## Testing
-
-Unit and regression tests can be executed in this way:
 
 ```
 raco test tests
 ```
-
-## Developing
-
-For compiling only:
-
-```
-mvn compile -Denv=dev -Dconf=config-dev.edn
-```
-
-For compiling and running a web server on a local VM (outside repl.it), with dev and debug tools enabled:
-
-```
-mvn compile exec:java -Denv=dev -Dconf=config-dev.edn
-```
-
-* Web server with debug enabled info will liset on port 3000
-* Clojure nrepl on port 7000
 
 ## License
 

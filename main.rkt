@@ -9,5 +9,3 @@
 
 (require datalog)
 
-(datalog family
-         (? (ancestor A B)))
