@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# {{{ bindir
+bindir="/home/runner/.apt/usr/bin/"
+# }}} bindir
+
+exec "${bindir}/racket" -N "$0" '-l-' 'raco/main.rkt'  ${1+"$@"}

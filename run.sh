@@ -26,7 +26,7 @@ OPTS=""
 if [[ "$#" -eq 1 ]]; then
   case $1 in
     --on-repl-it)
-    OPTS="--config /home/runner/jam/repl-it-conf"
+    OPTS="--config /home/runner/jam/repl-it-conf --collects /home/runner/.apt/usr/share/racket/collects"
     
     ;;
   esac
