@@ -3,6 +3,7 @@
 
 #lang info
 
+
 (define version "0.1")
 (define collection "dokmelody-repl-it-jam")
 
@@ -12,12 +13,8 @@
                "datalog"
                "browser"
                "web-server"
-               "nanopass"))
+               "nanopass"
+               "scribble-lib"
+               "racknuti-lib"))
 
-(define compile-omit-paths '("tests"))
-
-(define build-deps '("scribble-lib"
-                     "racket-doc"
-                     "rackunit-lib"))
-
-;; TODO (define scribblings '(("scribblings/dokmelody.scrbl")))
+(define test-include-paths '("tests"))

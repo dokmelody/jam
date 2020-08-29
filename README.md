@@ -55,7 +55,7 @@ A web server will listen on port 3000.
 Unit and regression tests can be executed in this way:
 
 ```
-mvn compile exec:java -Denv=test -Dexec.cleanupDaemonThreads=false -Dconf=config-test.edn
+raco test tests
 ```
 
 ## Developing
