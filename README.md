@@ -21,22 +21,22 @@ Jam progress is monitored on https://repl.it/@DokLang/jam-roadmap#README.md
 
 See ``docs`` directory for more info.
 
-## Running
-
-### On Repl.it
+## Running on Repl.it
 
 [![Run on Repl.it](https://repl.it/badge/github/dokmelody/jam)](https://repl.it/github/dokmelody/jam)
 
-The Repl.it ``Run`` button is associated to the command ``bash ./run.sh --on-repl-it``. It will install missing packages and launch a web server listening on a local port, and that can be accessed externally from an https URL provided by repl.it after it starts.
-
-### On local system
-
-Make sure to have a recent version of Racket installed. Then execute ``bash run.sh`` or inspect the content of this file for more info.
-
-## Testing
+The Repl.it ``Run`` button is associated to the command 
 
 ```
-raco test tests
+bash ./run.sh --on-repl-it
+```
+
+It will install missing packages and launch a web server listening on a local port, and that can be accessed externally from an https URL provided by repl.it after it starts.
+
+For testing
+
+```
+bash ./run.sh --on-repl-it test
 ```
 
 ## License

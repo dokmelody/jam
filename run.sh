@@ -4,7 +4,7 @@ set -euo pipefail
 if command -v racket > /dev/null; then
   echo "Already installed" > /dev/null
 else
-  if [[ "$#" -eq 1 ]]; then
+  if [[ "$#" -gt 0 ]]; then
     case $1 in
       --on-repl-it)
         PKG1="racket-common_7.7+ppa1-1~bionic1_all.deb"
@@ -13,9 +13,7 @@ else
         SITE1="https://downloads.asterisell.com"
         SITE2="https://launchpad.net/~plt/+archive/ubuntu/racket/+files"
 
-        install-pkg $SITE1/$PKG1 || install-pkg $SITE2/$PKG1
-
-        install-pkg $SITE1/$PKG2 || install-pkg $SITE2/$PKG2
+        install-pkg $SITE1/$PKG1 $SITE1/$PKG2 || install-pkg $SITE2/$PKG1 $SITE2/$PKG2
         
         ;;
     esac
@@ -23,7 +21,7 @@ else
 fi
 
 OPTS=""
-if [[ "$#" -eq 1 ]]; then
+if [[ "$#" -gt 0 ]]; then
   case $1 in
     --on-repl-it)
     OPTS="--config /home/runner/jam/repl-it-conf --collects /home/runner/.apt/usr/share/racket/collects"
@@ -44,7 +42,7 @@ update_exec_racket () {
 
   sed -i 's/librktdir=\"\/usr\/lib\/racket\"/librktdir=\"\/home\/runner\/\.apt\/usr\/lib\/racket\"/g' /home/runner/.apt/usr/bin/$1
 
-  sed -i 's/exec \".{bindir}\/racket\"/exec \"\/home\/runner\/\.apt\/usr\/bin\/racket\" --config \/home\/runner\/jam\/repl-it-conf --collects \/home\/runner\/.apt\/usr\/share\/racket\/collects /g' /home/runner/.apt/usr/bin/$1
+  sed -i 's/exec \"..bindir.\/racket\"/exec \"\/home\/runner\/\.apt\/usr\/bin\/racket\" --config \/home\/runner\/jam\/repl-it-conf --collects \/home\/runner\/.apt\/usr\/share\/racket\/collects /g' /home/runner/.apt/usr/bin/$1
 }
 
 if raco help > /dev/null 2>&1; then
@@ -78,8 +76,10 @@ else
   exit 1
 fi
 
-# TODO
-# raco pkg install --auto > /dev/null 2>&1 || true
+raco make main.rkt
 
-# TODO
-# racket "$OPTS" dokmelody/web-app.rkt
+if [[ "$#" -gt 1 ]]; then
+  racket $OPTS main.rkt $2
+else
+  racket $OPTS main.rkt --start-web-app
+fi
