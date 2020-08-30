@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if which racket > /dev/null; then
+if command -v racket > /dev/null; then
   echo "Already installed" > /dev/null
 else
   if [[ "$#" -eq 1 ]]; then
@@ -32,7 +32,7 @@ if [[ "$#" -eq 1 ]]; then
   esac
 fi
 
-if which racket > /dev/null 2>&1; then
+if command -v racket > /dev/null 2>&1; then
   echo "Installed" > /dev/null
 else
   echo "racket is not installed" 1>&2
@@ -78,6 +78,8 @@ else
   exit 1
 fi
 
-raco pkg install --auto > /dev/null 2>&1; || true
+# TODO
+# raco pkg install --auto > /dev/null 2>&1 || true
 
-racket $OPTS dokmelody/web-app.rkt
+# TODO
+# racket "$OPTS" dokmelody/web-app.rkt

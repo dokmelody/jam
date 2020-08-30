@@ -3,9 +3,28 @@
 
 #lang racket/base
 
+(require racket/cmdline)
+(require racket/match)
+(require rackunit/text-ui)
+
 (require "doknil/semantic.rkt")
+(require "tests/doknil-test.rkt")
+(require "dokmelody/web-app.rkt")
 
-(provide (all-from-out "doknil/semantic.rkt"))
+(define execute-tests (make-parameter #f))
+(define execute-web-app (make-parameter #f))
+(define execute-hello-world (make-parameter #f))
 
-(require datalog)
+(command-line
+   #:once-any
+   ["--test" "Execute unit tests" (execute-tests #t)]
+   ["--start-web-app" "Launch a web server application" (execute-web-app #t)]
+   ["--hello-world" "Print hello world" (execute-hello-world #t)])
 
+(cond
+  [(execute-hello-world) (println "Hello World!")]
+  [(execute-tests) (run-tests test-doknil)]
+  [(execute-web-app) (start-web-app)]
+)
+
+;; TODO it print a '() and I don't know why!?

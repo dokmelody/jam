@@ -3,6 +3,8 @@
 
 #lang racket/base
 
+(provide test-doknil)
+
 (require datalog
          racket/set
          racket/function
@@ -11,7 +13,17 @@
          racket/serialize
          "../doknil/semantic.rkt")
 
-(test-begin
+(define (check-query? description datalog-query-result results)
+    "Normalize datalog and user result, and compare them."
+
+    (check-equal?
+     (list->set (map (lambda (h) (make-immutable-hash (hash->list h))) datalog-query-result))
+     (list->set (map (lambda (xs) (make-immutable-hash xs)) results))))
+
+
+(define test-doknil
+  (test-suite "Doknil semantic"
+
   (datalog doknil
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -55,13 +67,6 @@
     (! (isa-fact ft-1 cntx-tolkien-places middle-earth nation #f))
     (! (isa-fact ft-2 cntx-tolkien-places gondor city middle-earth)))
 
-  (define (check-query? description datalog-query-result results)
-    "Normalize datalog and user result, and compare them."
-
-    (check-equal?
-     (list->set (map (lambda (h) (make-immutable-hash (hash->list h))) datalog-query-result))
-     (list->set (map (lambda (xs) (make-immutable-hash xs)) results))
-     description))
 
   (check-query?
     "Role hierarchy"
@@ -103,5 +108,4 @@
     (datalog doknil (? (isa tolkien CITY city COMPLEMENT OBJECT CNTX FACT)))
     (list (list (cons 'CITY 'gondor) (cons 'COMPLEMENT 'of) (cons 'OBJECT 'middle-earth) (cons 'CNTX 'cntx-tolkien-places) (cons 'FACT 'ft-2))
     ))
-
-)
+))
