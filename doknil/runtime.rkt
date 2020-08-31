@@ -4,76 +4,16 @@
 #lang racket
 
 (require datalog)
+(provide doknil-db)
 
-(provide doknil)
 
-;; TODO find a way to link a clojure value/object to a database statment
-;; MAYBE insert the distance of CONTEXT and PARENT in the derived relation
-;; TODO select the nearest card in the UI using the DISTANCE attribute
-;; TODO a card can read from a file on resource directories
-;; TODO the card-db is a function returning a card as a value, given a card name/index
-;; TODO caching of cards allows to avoid regeneration of all cards
-;; TODO order also relations by transitive closure
-;; TODO cache/memoize the generation of a card
-;; TODO store facts inside resources or similar
-;; TODO during reading the title include the context "R1/R0" with "R0" being the parent
-;; TODO create a map with complete-hiearchy as a vector and used as key, and the ``context-hierarchy-id`` as value.
-;; It will be used for creating new contexts on demand.
-;; Then they will be inserted exploded inside ``doknil-db``.
-;; TODO find if Refs, Vars or Atoms must be used for adding new facts inside doknil-db at run-time
-;; MAYBE make the same thing for part and role hierarchies
-;;
-;; TODO store in a map/db the assocation between key and card object
-;;
-;; TODO add index later to the db schema, according the type of queries to do
-;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
-;; or use instead an hash map of the complete hiearchy
-;; TODO use a defalt NULL/nil value for some of the specified relations
-;; TODO when a new hierarchy is added, then all sub-hierarchies (if news) are added
-;; TODO store in a data structure apart the associations between ids and complete hierarchy name
-;; TODO use this same structure for lookup during parsing
-;; TODO the same for roles, and all other Doknil elements
-;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
-;; TODO create a lookup function for passing from hierarchy names to id
-
-;; TODO make sure to register also roles without a parent
-;; TODO it is important showing explicitely overriden contexts
-;; TODO in queries one can only specify branches without groups
-
-;; TODO check that cntx itself is returned, and so no facts are left behind
-;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
-;; TODO report the reason in the manual
-
-;; TODO support a sort of stratified negation for inclusion of branches
-;; TODO The problem of Racket API for excluding CNTX, it is that it can influence also the
-;; is-part-of relationship, and this is-part-of can be defined in a branch but not in another
-;; so I had to exclude before and not after the query
-
-;; TODO DokMelody UI elements
-#|
-(defprotocol ACard
-  "A piece of short information"
-
-  (title [this])
-  (mime-type [this])
-  (content [this])
-  (implicit-links [this]))
-
-(defprotocol ALink
-  (subject [this])
-  (relation [this])
-  (object [this])
-  (context [this]))
- )
-|#
-
-(define doknil (make-theory))
+(define doknil-db (make-theory))
 
 (define  (precalculate-reachable-cntx)
   "Calculate a map BRANCH -> set-of(CNTX) with only the visible CNTX for each BRANCH."
 
-  (define paths1 (datalog doknil (? (cntx-rec2 BRANCH CNTX))))
-  (define paths2 (datalog doknil (? (exclude-cntx-rec BRANCH CNTX))))
+  (define paths1 (datalog doknil-db (? (cntx-rec2 BRANCH CNTX))))
+  (define paths2 (datalog doknil-db (? (exclude-cntx-rec BRANCH CNTX))))
 
   ; a map from BRANCH to set-of(CNTX)
   ; Leave only reachable contexts
@@ -110,7 +50,7 @@
       (set-member? (hash-ref m branch) cntx)
       #f))
 
-(datalog doknil
+(datalog doknil-db
         
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -3,13 +3,15 @@
 
 #lang racket/base
 
-(require racket/cmdline)
-(require racket/match)
-(require rackunit/text-ui)
+(require racket/cmdline
+         racket/match
+         rackunit/text-ui)
 
-(require "doknil/semantic.rkt")
-(require "tests/doknil-test.rkt")
-(require "dokmelody/web-app.rkt")
+(require "doknil/runtime.rkt"
+         "doknil/compiler.rkt"
+         "doknil/parser.rkt"
+         "tests/doknil-test.rkt"
+         "dokmelody/web-app.rkt")
 
 (define execute-tests (make-parameter #f))
 (define execute-web-app (make-parameter #f))

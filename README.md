@@ -43,8 +43,6 @@ bash ./run.sh --on-repl-it test
 
 This software and related documentation is released under the MIT license (https://opensource.org/licenses/MIT).
 
-DokMelody web application generated using Luminus version "3.83" template.
-
 ## Authors
 
 Programming language designers and main developers:

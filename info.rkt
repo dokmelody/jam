@@ -5,7 +5,7 @@
 
 (define name "dokmelody-repl-it-jam-2020")
 (define version "0.1")
-(define collection dokmelody)
+(define collection "dokmelody")
 
 (define pkg-desc "A quick prototype of Dok programming language, DokMelody IDE, and Doknil knowledge-base language, developed for the 2020 https://repl.it Programming Language Jam.")
 
@@ -13,6 +13,8 @@
                "datalog"
                "web-server"
                "nanopass"
+               "brag-lib"
+               "br-parser-tools-lib"
                "scribble-lib"
                "rackunit"))
 

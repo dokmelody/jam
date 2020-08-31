@@ -16,37 +16,37 @@ In Doknil the derivation rules are few and fixed, and the user can not add new d
 ### Instances
 
 ```
-c isa Company
-d isa Department of c
-p isa Project of d
+$c isa company
+$d isa department of $c
+$p isa project of $d
 
-i isa Issue of p
+$i isa issue of $p
 
-k isa Document
-k is Related to i
+$k isa document
+$k is related to $i
 ```
 
 ``c``, ``d``, ``p``, ``k`` and ``i`` are ``instances``:
 * they are entities, so with an identity, and internal attributes that can change
 * they are often associated to DokMelody ``cards``, and/or in general to some external object storing internal attributes associated to the ``instance`` and representing its real content
-* they can have one or more ``role`` associated to some other entities, e.g. ``i`` plays the role of ``Issue`` respect instance ``p`` which plays the role of ``Project`` respect instance ``d`` which plays the role of ``Department`` respect instance ``c`` that is a ``Company``. Note that ``Company`` is still a role, but of the ``root`` instance.
+* they can have one or more ``role`` associated to some other entities, e.g. ``i`` plays the role of ``issue`` respect instance ``p`` which plays the role of ``project`` respect instance ``d`` which plays the role of ``department`` respect instance ``c`` that is a ``company``. Note that ``company`` is still a role, but of the ``root`` instance.
 
 ### Subject
 
-In a fact like ``i isa Issue of p``, ``i`` is the ``subject`` of the fact, and it is obviously an ``instance``.
+In a fact like ``$i isa issue of $p``, ``i`` is the ``subject`` of the fact, and it is obviously an ``instance``.
 
 ### Roles
 
-In a fact like ``i isa Issue of p``, ``Issue`` is a ``Role``. A ``role`` can be seen also as the type of the ``subject``.
+In a fact like ``$i isa issue of $p``, ``issue`` is a ``role``. A ``role`` can be seen also as the type of the ``subject``.
 
 A ``subject`` can assume different roles for different owners. For example the same issue can be an issue and a cost for a company and a billable work for a support company.
 
 ``Roles`` can form an hierarchy, e.g. 
 
 ```
-Task --> (
-  /Issue
-  /Feature
+/task of --> (
+  /issue of
+  /feature of
 )
 ```
 
@@ -56,21 +56,21 @@ In Doknil a fact about a specific role is also a fact about the more generic rol
 
 ### Object complements
 
-In a fact like ``i isa Issue of p``, ``p`` is the object ``complement``. It is an instance for which ``i`` plays the role of ``Issue``.
+In a fact like ``$i isa issue of $p``, ``p`` is the object ``complement``. It is an instance for which ``i`` plays the role of ``Issue``.
 
-The fact can use different syntax patterns like ``... of p``, ``... respect p``, ``... to p``, ``... for p`` etc..
+The fact can use different syntax patterns like ``... of $p``, ``... respect $p``, ``... to $p``, ``... for $p`` etc..
 
 ### Parts
 
-A fact like ``x isa R of y`` specifies also that ``x`` is part of ``y``. ``y`` is always an object ``complement`` and ``x`` is the subject. But a new implicit fact like ``x is Part of y`` is derived.
+A fact like ``$x isa r of $y`` specifies also that ``x`` is part of ``y``. ``y`` is always an object ``complement`` and ``x`` is the subject. But a new implicit fact like ``$x is part of $y`` is derived.
 
-Parts are defined only using the ``... of p`` syntax pattern. So the ``of`` is mandatory. All other forms like ``to``, ``respect`` and so on, do not introduce a part/owner relationship.
+Parts are defined only using the ``... of $p`` syntax pattern. So the ``of`` is mandatory. All other forms like ``to``, ``respect`` and so on, do not introduce a part/owner relationship.
 
 An instance can be part of different owners, for example an issue shared between two different departments.
 
-Every time there is pattern like ``s isa Role of p``, with ``... of p``, then ``s`` is considered part of ``p``.
+Every time there is pattern like ``$s isa role of $p``, with ``... of $p``, then ``s`` is considered part of ``p``.
 
-Parts are important because in Doknil a fact of a part is also a fact for the owner of the part. For example given an hierarchy of parts ``c/d/p`` (``company/ department/project``), the fact ``i isa Issue of p`` derives also the facts ``i isa Issue of d`` and ``i isa Issue of c``.
+Parts are important because in Doknil a fact of a part is also a fact for the owner of the part. For example given an hierarchy of parts ``c/d/p`` (``company/ department/project``), the fact ``$i isa issue of $p`` derives also the facts ``$i isa issue of $d`` and ``$i isa issue of $c``.
 
 ### Attributes vs links
 
@@ -82,29 +82,29 @@ In Doknil there are only links. Instances can have attributes, but they are mana
 
 ### Hierarchical contexts
 
-Facts can be valid only inside a certain ``context`` (e.g. a certain domain, paper, author, company, department, project). ``Contexts`` can form an hierarchy. ``world`` is the root context.
+Facts can be valid only inside a certain ``context`` (e.g. a certain domain, paper, author, company, department, project). ``Contexts`` can form an hierarchy. ``World`` is the root context.
 
 Facts are propagated automatically from parent to child contexts, but not from children to parent context.
 
 ```
-world --> {
-  mars isa Planet
+World --> {
+  $mars isa planet
 }
 
-world/lordOfTheRings --> {
-  gondor isa City
+World/LordOfTheRings --> {
+  $gondor isa city
 }
 
-world -->
-  asimov --> {
-    foundationSeries --> {
-      trantor isa Planet
+World -->
+  Asimov --> {
+    FoundationSeries --> {
+      $trantor isa planet
     }
   }
 }
 ```
 
-So in ``world/lordOfTheRings`` context ``mars`` is a planet, and ``gondor`` isa city, but in ``world/asimov/foundationSeries`` ``gondor`` is not a city because ``world/lordOfTheRings`` is not one of its parents.
+So in ``World/LordOfTheRings`` context ``Mars`` is a planet, and ``$gondor`` isa city, but in ``World/Asimov/FoundationSeries`` ``$gondor`` is not a city because ``World/LordOfTheRings`` is not one of its parents.
 
 ### Group contexts
 
@@ -121,39 +121,39 @@ A full context is formed by a context hierarchy followed by an optional group co
 A child context can exclude to import facts from a parent context using something like ``!exclude some/parent/context.some.group.context``. 
 
 ```
-City
-City/Capital
+city
+city/capital
 
-Nation
-Continent
+nation
+continent
 
-world --> {
-  mars isa Planet
-  earth isa Planet
+World --> {
+  $mars isa planet
+  $earth isa planet
 
   .earth.places --> {
-    southAmerica isa Continent
-    cile isa Nation of southAmerica
-    santiago isa Capital of cile
+    $southAmerica isa continent
+    $cile isa nation of $southAmerica
+    $santiago isa capital of $cile
   }
 }
 
-world/lordOfTheRings.places --> {
-  !exclude world.earth.places
+World/LordOfTheRings.places --> {
+  !exclude World/Earth.places
 
-  gondor isa City
+  $gondor isa city
 }
 ```
 
-In this example ``santiago`` is not a city in context ``lordOfTheRings`` context, because it overrides the facts about ``world.earth.places``. But ``mars`` is still a planet also in ``lordOfTheRings`` context.
+In this example ``$santiago`` is not a city in context ``LordOfTheRings`` context, because it overrides the facts about ``World.earth.places``. But ``$mars`` is still a planet also in ``LordOfTheRings`` context.
 
 ### Reusing context facts
 
 Facts specified in a distinct (i.e. non-parent) context can be imported in a new context using something like ``!include some/distinct/context.some.group``.
 
 ```
-world/thesisOnTolkien --> {
-  !include world/lordOfTheRings.places
+World/ThesisOnTolkien --> {
+  !include World/LordOfTheRings.places
 }
 ```
 
@@ -172,17 +172,17 @@ So the contexts specified in ``!include`` and ``!exclude`` are always distinct.
 Given something like
 
 ```
-world/someNewContext.someGroup --> { 
-  !include someExternalContext.someGroup
-  !exclude world.places
+World/SomeNewContext.someGroup --> { 
+  !include SomeExternalContext.someGroup
+  !exclude World.places
 
-  someSubect isa SomeRole for someObject
+  $someSubect isa someRole for $someObject
 } 
 ```
 
-the ``!include`` and ``!exclude`` will work on entire ``someNewContext`` and not only ``someNewContext.someGroup``, because every group of ``someNewContext`` is affected by the defined facts.
+the ``!include`` and ``!exclude`` will work on entire ``SomeNewContext`` and not only ``SomeNewContext.someGroup``, because every group of ``SomeNewContext`` is affected by the defined facts.
 
-The ``someNewContext.someGroup`` is used only for adding new facts into ``someGroup``group.
+The ``SomeNewContext.someGroup`` is used only for adding new facts into ``someGroup``group.
 
 ### Context information propagation
 
@@ -231,21 +231,21 @@ Doknil schema should be easy to define because there are usually no alternative 
 ### Example
 
 ```
-garbageCollection is Part of memoryManagement
-referenceCounting is Part of memoryManagement
+$garbageCollection is part of $memoryManagement
+$referenceCounting is part of $memoryManagement
 ```
 
 This must be clearly modelled as ``part`` because every property of ``garbageCollection`` is also a property of ``memoryManagement``.
 
 ```
-garbageCollection isa PossibleSolution for safety
+$garbageCollection isa possibleSolution for $safety
 ```
 
-This is not a part relationship. ``safety`` is a more broad concept respect ``garbageCollection`` so ``safety`` is the ``complement`` and ``garbageCollection`` the subject. 
+This is not a part relationship. ``$safety`` is a more broad concept respect ``$garbageCollection`` so ``$safety`` is the ``complement`` and ``$garbageCollection`` the subject. 
 
 ```
-jvm --> {
-  garbageCollection isa Solution for safety
+Jvm --> {
+  $garbageCollection isa solution for $safety
 }
 ```
 
@@ -262,14 +262,14 @@ Obviously this is only an informal validation of Doknil ideas, while a more comp
 Events are described in PMBOK with something like this:
 
 ```
-Event --> (
-  /Phase
-  /PhaseStage --> (
-    /Closing
-    /Executing
-    /Initianing
-    /MonitoringAndControlling
-    /Planning   
+/event --> (
+  /phase
+  /phaseStage --> (
+    /closing
+    /executing
+    /initianing
+    /monitoringAndControlling
+    /planning   
   )
 )
 ```
@@ -297,25 +297,25 @@ In Doknil and DokMelody:
 * an event can be (for the company or the world) in a certain phase. Documents of the past are still referred to the specific phase.
 
 ```
-Phase --> (
-  /Planning
-  /Initiating
-  /Executing
-  /Closing
-  /Closed
+/phase --> (
+  /planning
+  /initiating
+  /executing
+  /closing
+  /closed
 )
 
-State --> Phase
+state --> phase
 
-Company
-Event
+company
+event
 
-acme isa Company
-showCase isa Event of acme
-plan1 isa Document
-plan1 isa Planning of showCase
+$acme isa company
+$showCase isa event of $acme
+$plan1 isa document
+$plan1 isa planning of $showCase
 
-showCase isa State/Planning
+$showCase isa state/planning
 
 # We will add some constraints. They will use queries seen as tuples, starting from a KB-friendly query.
 # So after the first extraction of data, it will follow a relational approach, and not a logical one.

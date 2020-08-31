@@ -76,6 +76,12 @@ else
   exit 1
 fi
 
+if raco pkg show Packrat -a | grep Packrat > /dev/null ; then
+  echo "Packages are installed" > /dev/null
+else
+  raco pkg update --auto
+fi
+
 raco make main.rkt
 
 if [[ "$#" -gt 1 ]]; then
