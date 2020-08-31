@@ -48,7 +48,7 @@ This software and related documentation is released under the MIT license (https
 Programming language designers and main developers:
 
 * Massimo Zaniboni <mzan@dokmelody.org>
-* TODO
+* Ali Ahsan <aliahsan07@outlook.com>
 
 Reviewers and contributors:
 
