@@ -7,11 +7,17 @@ kb:
   role-def* stmt*
 
 role-def:
-  "/" ID ("-->" "(" role-def* ")")?
+  "/" role complement ("-->" "(" role-def* ")")?
 
 stmt:
-  OBJ ISA role (complement OBJ)?
+  subject ISA role (complement object)?
 | cntx "-->" "{" stmt* "}"
+
+subject:
+  OBJ
+
+object:
+  OBJ
 
 role:
   ID
@@ -20,4 +26,10 @@ complement:
   ID
 
 cntx:
-  CNTX ("/" CNTX)* ("." ID)?
+  branch group?
+
+branch:
+  CNTX ("/" CNTX)*
+
+group:
+  "." ID

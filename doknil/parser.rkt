@@ -11,11 +11,23 @@
 # Comment 1
 # Comment 2
 
+/related to --> (
+  /task of --> (
+    /issue of
+  )
+)
+
 $subj isa subject of $obj
 
 $subj2 isa subject2 of $obj2
 
 $subj3 isa subject3
+
+World --> {
+  Tolkien/LordOfTheRings.cities --> {
+    $gondor isa city of $middleEarth
+  }
+}
 
 DOKNIL-SRC
 ))
