@@ -9,7 +9,6 @@
 
 (require "doknil/runtime.rkt"
          "doknil/compiler.rkt"
-         "doknil/parser.rkt"
          "tests/doknil-test.rkt"
          "dokmelody/web-app.rkt")
 

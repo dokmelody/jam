@@ -5,6 +5,9 @@
 
 (require datalog)
 (require nanopass)
+(require syntax/parse syntax/stx)
+(require "lexer.rkt")
+(require "grammar.rkt")
 
 ;; TODO find a way to link a clojure value/object to a database statment
 ;; MAYBE insert the distance of CONTEXT and PARENT in the derived relation
@@ -99,6 +102,11 @@
 ;; TODO first make cntx like a top-down attribute
 ;; TODO then convert to a language where context is explicit and assigned to each statement
 
+;; TODO add include and exclude to the syntax
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Parse source code to a Grammar Syntax Tree
+
 (define (instance? x) (symbol? x))
 
 (define (role? x) (symbol? x))
@@ -109,8 +117,9 @@
 
 (define (cntx-group? x) (symbol? x))
 
-;; Doknil AST, very near to effective syntax.
-(define-language DoknilL0
+;; A language rather similar to Grammar Syntax Tree,
+;; so the conversion from the parsed one is simplified.
+(define-language L0
   (entry KB)
   (terminals
    (instance (subj obj))
@@ -120,17 +129,142 @@
    (cntx-group (group)))
 
   (KB (kb)
-      (knowledge-base role-def* stmt* ...))
+      (knowledge-base stmt* ...))
 
   (RoleDef (role-def)
-    role
-    (role-parent-of role0 role-def* ...))
+    (role-deff role role-def* ...))
 
   (Stmt (stmt)
-        (push-cntx branch group?)
-        (pop-cntx)
         (cntx-include (branch* ...) group?)
         (cntx-exclude (branch* ...) group?)
         (is subj role)
-        (isa subj role of obj))
+        (isa subj role of obj)
+        (role-defff role-def)
+        (cntx (branch* ...) (group* ...) (stmt* ...))
+        )
 )
+
+(define-parser parse-L0 L0)
+
+#|
+TODO complete
+
+(define (grammar->L0 stx)
+
+  (define (role-def->r stx)
+    (syntax-parse stx
+      [ ((~literal role-def) "/" ((~literal role) r) ((~literal complement) c) "-->" "(" rs ... ")")
+        (with-output-language (L0 RoleDef)
+          (let ((rds (map (curry role-def->r) (syntax->list #'(rs ...)))))
+               `(role-deff ,(string->symbol (syntax->datum #'r)) ,rds ...)))
+        ]
+
+      [ ((~literal role-def) "/" ((~literal role) r) ((~literal complement) c))
+        (with-output-language (L0 RoleDef)
+           `(role-deff ,(string->symbol (syntax->datum #'r))))
+      ]))
+
+  ; TODO adapt this code and return a list of branches to use in other functions
+  (define (branch->r stx)
+    (syntax-parse stx
+      [ ((((~literal branch) branch) ...) (~optional ((~literal group) "." group)))
+        (let ((branch->l0 (map () (syntax->list #'(branch ...)))  ))
+         (with-output-language (L0 Stmt)
+           (let ((rds (map (curry role-def->r) (syntax->list #'(rs ...)))))
+             ; TODO push every branch
+             ; TODO for the last branch push also the group in case if it exists
+               `(push-cntx ,(string->symbol (syntax->datum #'r)) ,rds ...)))
+
+        ]
+
+  (define (def->r stx)
+    (syntax-parse stx
+      [ ((~literal stmt) ((~literal subject) subj) isa ((~literal role) role))
+        (with-output-language (L0 Stmt)
+           `(is ,(string->symbol (syntax->datum #'subj)) ,(string->symbol (syntax->datum #'role))))
+        ]
+
+      [ ((~literal stmt) ((~literal subject) subj) isa ((~literal role) role) ((~literal complement) complement) ((~literal object) obj))
+        (with-output-language (L0 Stmt)
+           `(is ,(string->symbol (syntax->datum #'subj)) ,(string->symbol (syntax->datum #'role)) ,(string->symbol (syntax->datum #'role))))
+        ]
+
+      ; TODO adapt
+      [ ((~literal stmt) ((~literal cntx) ((~literal branch) branch ...) (~optional ((~literal group) "." group)))
+
+                          subj) isa ((~literal role) role) ((~literal complement) complement) ((~literal object) obj))
+        (with-output-language (L0 Stmt)
+           `(is ,(string->symbol (syntax->datum #'subj)) ,(string->symbol (syntax->datum #'role)) ,(string->symbol (syntax->datum #'role))))
+      ]
+
+      [ (r ...) (role-def->r #'(r ...))]))
+
+  (syntax-parse stx
+    [((~literal kb) ~rest rs)
+     (map (curry def->r) (syntax->list #'rs))]
+  ))
+|#
+
+;; TODO
+#|
+(stmt (cntx (branch "World")) "-->" "{" (stmt (cntx (branch "Tolkien" "/" "LordOfTheRings") (group "." "cities")) "-->" "{"
+|#
+
+;; TODO
+#|
+(define (debug src)
+  (define token-thunk (tokenizer src))
+  (define stx (parse token-thunk))
+  (println (syntax->datum stx))
+  (println (grammar->L0 stx))
+)
+
+(define test-src1 (open-input-string #<<DOKNIL-SRC
+# Comment 1
+# Comment 2
+
+/related to
+
+$subj isa subject of $obj
+
+$subj2 isa subject2 of $obj2
+
+$subj3 isa subject3
+
+World --> {
+  Tolkien/LordOfTheRings.cities --> {
+    $gondor isa city of $middleEarth
+  }
+}
+
+DOKNIL-SRC
+))
+
+(define test-src2 (open-input-string #<<DOKNIL-SRC
+# Comment 1
+# Comment 2
+
+/related to --> (
+  /task of --> (
+    /issue of
+  )
+)
+
+$subj isa subject of $obj
+
+$subj2 isa subject2 of $obj2
+
+$subj3 isa subject3
+
+World --> {
+  Tolkien/LordOfTheRings.cities --> {
+    $gondor isa city of $middleEarth
+  }
+}
+
+DOKNIL-SRC
+))
+
+
+(debug test-src2)
+|#

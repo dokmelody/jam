@@ -3,33 +3,24 @@
 
 #lang brag
 
-kb:
-  role-def* stmt*
-
-role-def:
-  "/" role complement ("-->" "(" role-def* ")")?
+kb: (role-def | stmt)*
 
 stmt:
   subject ISA role (complement object)?
 | cntx "-->" "{" stmt* "}"
 
-subject:
-  OBJ
+role-def: "/" role complement ("-->" "(" role-def* ")")?
 
-object:
-  OBJ
+subject: OBJ
 
-role:
-  ID
+object: OBJ
 
-complement:
-  ID
+role: ID
 
-cntx:
-  branch group?
+complement: ID
 
-branch:
-  CNTX ("/" CNTX)*
+cntx: branch group?
 
-group:
-  "." ID
+branch: CNTX ("/" CNTX)*
+
+group: "." ID
