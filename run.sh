@@ -76,7 +76,7 @@ else
   exit 1
 fi
 
-if raco pkg show Packrat -a | grep Packrat > /dev/null ; then
+if raco pkg show nanopass -a | grep nanopass > /dev/null ; then
   echo "Packages are installed" > /dev/null
 else
   raco pkg update --auto
