@@ -13,6 +13,7 @@
                "datalog"
                "web-server"
                "nanopass"
+               "parser-tools-lib"
                "brag-lib"
                "br-parser-tools-lib"
                "scribble-lib"

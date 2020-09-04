@@ -2,7 +2,7 @@
 
 This is an initial prototype of Dok programming language (https://www.dokmelody.org), DokMelody IDE, and Doknil knowledge-base language, developed in Racket.
 
-It was planned for the [Repl.it Programming Language Jam 2020](https://repl.it), but it wasn't released in time for the deadline. In any case the Jam gave a big impulse and momentum, and indeed it was fun!
+It was planned for the [Repl.it Programming Language Jam 2020](https://repl.it), but it wasn't released in time for the deadline. In any case the Jam gave a big impulse and momentum, and indeed it was fun! So I continue the work on this prototype without changing name to the repo.
 
 ## Mission
 

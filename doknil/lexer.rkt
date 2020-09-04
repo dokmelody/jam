@@ -3,13 +3,12 @@
 
 #lang racket
 
-(provide tokenizer)
+(provide doknil-lexer)
 
-(require br-parser-tools/lex
+(require (prefix-in : br-parser-tools/lex-sre)
          brag/support)
-(require (prefix-in : br-parser-tools/lex-sre))
 
-(define (tokenizer ip)
+(define (doknil-lexer ip)
   (port-count-lines! ip)
 
   (define-lex-abbrev id2 (:* (:or alphabetic numeric #\_)))
@@ -38,6 +37,12 @@
        ["."
         (token "." lexeme)]
 
+       ["!include"
+        (token 'INCLUDE lexeme)]
+
+       ["!exclude"
+        (token 'EXCLUDE lexeme)]
+
        [(:or "isa" "is")
         (token 'ISA lexeme)]
 
@@ -55,7 +60,7 @@
 
        [whitespace
         (token 'WHITESPACE lexeme #:skip? #t)]
-      
+
        [(eof)
         (void)]))
 

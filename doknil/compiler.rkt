@@ -5,7 +5,6 @@
 
 (require datalog)
 (require nanopass)
-(require syntax/parse syntax/stx)
 (require "lexer.rkt")
 (require "grammar.rkt")
 
@@ -50,8 +49,6 @@
 ;; TODO The problem of Racket API for excluding CNTX, it is that it can influence also the
 ;; is-part-of relationship, and this is-part-of can be defined in a branch but not in another
 ;; so I had to exclude before and not after the query
-
-;; TODO first define the nanopass version, then define the parser later, when I know the AST to generate
 
 ;; TODO add tests informing of errors in a Doknil code
 ;; * TODO add test to the compiler
@@ -99,13 +96,8 @@
 ;;
 ;; > (isa-fact ID CNTX INSTANCE ROLE OBJECT)
 
-;; TODO first make cntx like a top-down attribute
-;; TODO then convert to a language where context is explicit and assigned to each statement
-
-;; TODO add include and exclude to the syntax
-
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Parse source code to a Grammar Syntax Tree
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Syntax Tree
 
 (define (instance? x) (symbol? x))
 
@@ -117,8 +109,8 @@
 
 (define (cntx-group? x) (symbol? x))
 
-;; A language rather similar to Grammar Syntax Tree,
-;; so the conversion from the parsed one is simplified.
+;; A language similar to the Syntax Tree generated from the parse,
+;; so it is easier to generate during parsing.
 (define-language L0
   (entry KB)
   (terminals
@@ -128,98 +120,110 @@
    (cntx-branch (branch))
    (cntx-group (group)))
 
-  (KB (kb)
-      (knowledge-base stmt* ...))
+  (KB ()
+      (knowledge-base (role-def* ...) (stmt* ...)))
 
   (RoleDef (role-def)
-    (role-deff role role-def* ...))
+    (role-children role of (role-def* ...)))
+
+  (Cntx (cntx)
+    (cntx-ref (branch* ...) (group* ...)))
 
   (Stmt (stmt)
-        (cntx-include (branch* ...) group?)
-        (cntx-exclude (branch* ...) group?)
+        (cntx-include cntx)
+        (cntx-exclude cntx)
         (is subj role)
         (isa subj role of obj)
-        (role-defff role-def)
-        (cntx (branch* ...) (group* ...) (stmt* ...))
+        (role-deff role-def)
+        (cntx-def cntx (stmt* ...))
         )
 )
 
 (define-parser parse-L0 L0)
 
-#|
-TODO complete
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Parser: read the text and produce a syntax tree in L0
 
-(define (grammar->L0 stx)
+(define (doknil-parser in-str)
+  (define token-thunk (doknil-lexer in-str))
+  (define root (parse-to-datum token-thunk))
 
-  (define (role-def->r stx)
-    (syntax-parse stx
-      [ ((~literal role-def) "/" ((~literal role) r) ((~literal complement) c) "-->" "(" rs ... ")")
-        (with-output-language (L0 RoleDef)
-          (let ((rds (map (curry role-def->r) (syntax->list #'(rs ...)))))
-               `(role-deff ,(string->symbol (syntax->datum #'r)) ,rds ...)))
-        ]
+  (define (role-def/m root)
+     (match root
+       ((list 'role-def "/" (list 'role name) complement)
+          `(role-children ,(string->symbol name) ,(string->symbol complement) ()))
+       ((list 'role-def "/" (list 'role name) complement (list 'role-children "-->" "(" children ... ")"))
+          `(role-children ,(string->symbol name) ,(string->symbol complement) ,(map role-def/m children)))
+       ))
 
-      [ ((~literal role-def) "/" ((~literal role) r) ((~literal complement) c))
-        (with-output-language (L0 RoleDef)
-           `(role-deff ,(string->symbol (syntax->datum #'r))))
-      ]))
+  (define (hierarchy-sep-by s rs)
+    (define ss (string->symbol s))
+    (filter (lambda (x) (not (eq? x ss))) (map string->symbol rs)))
 
-  ; TODO adapt this code and return a list of branches to use in other functions
-  (define (branch->r stx)
-    (syntax-parse stx
-      [ ((((~literal branch) branch) ...) (~optional ((~literal group) "." group)))
-        (let ((branch->l0 (map () (syntax->list #'(branch ...)))  ))
-         (with-output-language (L0 Stmt)
-           (let ((rds (map (curry role-def->r) (syntax->list #'(rs ...)))))
-             ; TODO push every branch
-             ; TODO for the last branch push also the group in case if it exists
-               `(push-cntx ,(string->symbol (syntax->datum #'r)) ,rds ...)))
+  (define (cntx/m root)
+    (match root
+      ((list 'cntx (list 'branch cntx ...) (list 'group group ...))
+        `(cntx-ref ,(hierarchy-sep-by "/" cntx) ,(hierarchy-sep-by "." group)))))
 
-        ]
+  (define (kb-role-def/m part)
+    (match part
+      ((list 'role-def _ ...) (role-def/m part))
+       (other #f)
+    ))
 
-  (define (def->r stx)
-    (syntax-parse stx
-      [ ((~literal stmt) ((~literal subject) subj) isa ((~literal role) role))
-        (with-output-language (L0 Stmt)
-           `(is ,(string->symbol (syntax->datum #'subj)) ,(string->symbol (syntax->datum #'role))))
-        ]
+  (define (kb-stmt-part/m part)
+    (match part
+      ((list 'include-cntx (list "!include" cntx))
+       `(cntx-include ,(cntx/m cntx)))
 
-      [ ((~literal stmt) ((~literal subject) subj) isa ((~literal role) role) ((~literal complement) complement) ((~literal object) obj))
-        (with-output-language (L0 Stmt)
-           `(is ,(string->symbol (syntax->datum #'subj)) ,(string->symbol (syntax->datum #'role)) ,(string->symbol (syntax->datum #'role))))
-        ]
+      ((list 'exclude-cntx (list "!include" cntx))
+       `(cntx-exclude ,(cntx/m cntx)))
 
-      ; TODO adapt
-      [ ((~literal stmt) ((~literal cntx) ((~literal branch) branch ...) (~optional ((~literal group) "." group)))
+      ((list (list 'subject subj) isa (list 'role role))
+       `(is ,(string->symbol subj) ,(string->symbol role)))
 
-                          subj) isa ((~literal role) role) ((~literal complement) complement) ((~literal object) obj))
-        (with-output-language (L0 Stmt)
-           `(is ,(string->symbol (syntax->datum #'subj)) ,(string->symbol (syntax->datum #'role)) ,(string->symbol (syntax->datum #'role))))
-      ]
+      ((list (list 'subject subj) isa (list 'role role) (list 'complement of (list 'object obj)))
+       `(isa ,(string->symbol subj) ,(string->symbol role)  ,(string->symbol of) ,(string->symbol obj)))
 
-      [ (r ...) (role-def->r #'(r ...))]))
+      ((list (list 'cntx (list 'branch cntx ...) (list 'group group ...)) "-->" "{" stmts ... "}")
+       `(cntx-def (cntx-ref ,(hierarchy-sep-by "/" cntx) ,(hierarchy-sep-by "." group)) ,(map kb-stmt/m stmts)))
 
-  (syntax-parse stx
-    [((~literal kb) ~rest rs)
-     (map (curry def->r) (syntax->list #'rs))]
-  ))
-|#
+    ))
 
-;; TODO
-#|
-(stmt (cntx (branch "World")) "-->" "{" (stmt (cntx (branch "Tolkien" "/" "LordOfTheRings") (group "." "cities")) "-->" "{"
-|#
+  (define (kb-stmt/m stmt)
+    (match stmt
+      ((list 'stmt rs ...)
+       (kb-stmt-part/m rs))
 
-;; TODO
-#|
-(define (debug src)
-  (define token-thunk (tokenizer src))
-  (define stx (parse token-thunk))
-  (println (syntax->datum stx))
-  (println (grammar->L0 stx))
+      ((list 'role-def _ ...)
+       #f)
+      ))
+
+  ; Entry point
+  (match root
+    ((list 'kb stmts ...)
+     `(knowledge-base ,(filter-map kb-role-def/m stmts) ,(filter-map kb-stmt/m stmts))))
 )
 
-(define test-src1 (open-input-string #<<DOKNIL-SRC
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Some examples of code
+
+(define test-src0 #<<DOKNIL-SRC
+# Comment 1
+# Comment 2
+
+/related to
+
+/again to
+
+
+$subj isa role
+
+DOKNIL-SRC
+)
+
+
+(define test-src1 #<<DOKNIL-SRC
 # Comment 1
 # Comment 2
 
@@ -238,15 +242,50 @@ World --> {
 }
 
 DOKNIL-SRC
-))
+)
 
-(define test-src2 (open-input-string #<<DOKNIL-SRC
+(define test-src2 #<<DOKNIL-SRC
 # Comment 1
 # Comment 2
 
 /related to --> (
   /task of --> (
     /issue of
+  )
+  /task2 of
+)
+/another of
+/again of
+
+$subj isa subject of $obj
+
+$subj2 isa subject2 of $obj2
+
+$subj3 isa subject3
+
+World --> {
+  !include Some/Other/Cntx.some.other.group
+  !exclude Othe/Cntx.group
+
+  Tolkien/LordOfTheRings.cities --> {
+    $gondor isa city of $middleEarth
+  }
+}
+
+DOKNIL-SRC
+)
+
+(define test-src3 #<<DOKNIL-SRC
+# Comment 1
+# Comment 2
+
+/role1 of
+
+/role2 of --> (
+  /role3 from
+  /rola4 again
+  /role5 from --> (
+    /role51 again2
   )
 )
 
@@ -263,8 +302,19 @@ World --> {
 }
 
 DOKNIL-SRC
-))
+)
 
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Debug
 
-(debug test-src2)
-|#
+(define (debug src)
+  (define token-thunk (doknil-lexer (open-input-string src)))
+  (parse-to-datum token-thunk)
+)
+
+(debug test-src3)
+
+(doknil-parser (open-input-string test-src3))
+
+(parse-L0 (doknil-parser (open-input-string test-src3)))
+
