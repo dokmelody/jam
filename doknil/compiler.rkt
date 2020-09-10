@@ -3,30 +3,14 @@
 
 #lang racket
 
-(require datalog)
-(require nanopass)
-(require "lexer.rkt")
-(require "grammar.rkt")
+(require racket/base
+         datalog
+         nanopass
+         threading
+         "lexer.rkt"
+         "grammar.rkt"
+         "runtime.rkt")
 
-;; TODO find a way to link a clojure value/object to a database statment
-;; MAYBE insert the distance of CONTEXT and PARENT in the derived relation
-;; TODO select the nearest card in the UI using the DISTANCE attribute
-;; TODO a card can read from a file on resource directories
-;; TODO the card-db is a function returning a card as a value, given a card name/index
-;; TODO caching of cards allows to avoid regeneration of all cards
-;; TODO order also relations by transitive closure
-;; TODO cache/memoize the generation of a card
-;; TODO store facts inside resources or similar
-;; TODO during reading the title include the context "R1/R0" with "R0" being the parent
-;; TODO create a map with complete-hiearchy as a vector and used as key, and the ``context-hierarchy-id`` as value.
-;; It will be used for creating new contexts on demand.
-;; Then they will be inserted exploded inside ``doknil-db``.
-;; TODO find if Refs, Vars or Atoms must be used for adding new facts inside doknil-db at run-time
-;; MAYBE make the same thing for part and role hierarchies
-;;
-;; TODO store in a map/db the assocation between key and card object
-;;
-;; TODO add index later to the db schema, according the type of queries to do
 ;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
 ;; or use instead an hash map of the complete hiearchy
 ;; TODO use a defalt NULL/nil value for some of the specified relations
@@ -43,73 +27,21 @@
 
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
-;; TODO report the reason in the manual
-
-;; TODO support a sort of stratified negation for inclusion of branches
-;; TODO The problem of Racket API for excluding CNTX, it is that it can influence also the
-;; is-part-of relationship, and this is-part-of can be defined in a branch but not in another
-;; so I had to exclude before and not after the query
-
-;; TODO add tests informing of errors in a Doknil code
-;; * TODO add test to the compiler
-;; * TODO test in regression unit tests checking for compilation errors
-;; * TODO document in the manual
-
-;; TODO these are the terms to use
-;; Store a role hierarchy like ``Task/Issue``.
-;; A role has a unique parent.
-;; For roles without a parent set parent to #f
-;; COMPLEMENT is the ``of``, ``for``, ``to``, etc.. complement linking
-;; the subject of a fact with its object.
-;; Only COMPLEMENT of type ``of`` derive also a ``part-of`` relationship.
-;;
-;; A constraint it is that a child ROLE with a COMPLEMENT not of type ``of``
-;; can not have a parent ROLE with COMPLEMENT ``of``. The reason it is that
-;; all ``of`` relationships must be explicit at the moment of the definition
-;; of the extensional fact, and not unexpected.
-;;
-;; > (! (role ID COMPLEMENT PARENT))
-;;
-;; The branch of a context. Something like ``world/x/y``.
-;;   The root context branch `world` has parent set to #f, and the special id 0
-;; > (! (branch ID PARENT))
-;;
-;; A cntx branch and an optional group.
-;; Something like ``world/x/y.a.b.c``.
-;; The PARENT manage only the group part, so the BRANCH must remain constant
-;; in the same hierarchy.
-;;
-;; > (cntx ID BRANCH PARENT)
-
-;; Something like ``dstContext.some.group --> { !include some/source/cntx.another.group.cntx }``
-;;
-;; > (include-cntx DST-CNTX SRC-CNTX)
-
-;; Something like ``dstContext.some.group --> { !exclude some/source/cntx.another.group.cntx }``
-;;
-;; > (exclude-cntx DST-CNTX SRC-CNTX)
-
-;; Store the Role relationship of a fact.
-;; Something like ``world/x/y.a.b --> { e isa Something for c }``
-;;
-;; OBJECT is set to nil if it is not specified.
-;;
-;; > (isa-fact ID CNTX INSTANCE ROLE OBJECT)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Syntax Tree
+;; Nanopass languages
 
 (define (instance? x) (symbol? x))
 
 (define (role? x) (symbol? x))
 
-(define (complement? x) (symbol? x))
+(define (complement? x) (or (eq? x #f) (symbol? x)))
 
 (define (cntx-branch? x) (symbol? x))
 
 (define (cntx-group? x) (symbol? x))
 
-;; A language similar to the Syntax Tree generated from the parse,
+;; A language similar to the Syntax Tree generated from the parser,
 ;; so it is easier to generate during parsing.
 (define-language L0
   (entry KB)
@@ -120,7 +52,7 @@
    (cntx-branch (branch))
    (cntx-group (group)))
 
-  (KB ()
+  (KB (kb)
       (knowledge-base (role-def* ...) (stmt* ...)))
 
   (RoleDef (role-def)
@@ -134,12 +66,107 @@
         (cntx-exclude cntx)
         (is subj role)
         (isa subj role of obj)
-        (role-deff role-def)
+        role-def
         (cntx-def cntx (stmt* ...))
         )
 )
 
 (define-parser parse-L0 L0)
+
+(define (db-id? x) fixnum? x)
+
+;; Replace identifiers with compact integer ID.
+;; Remove ``of`` and use only a ``role`` identifier.
+(define-language L1
+  (extends L0)
+  (terminals
+   (- (instance (subj obj))
+      (role (role))
+      (complement (of))
+      (cntx-branch (branch))
+      (cntx-group (group))
+      )
+   (+ (db-id (id subj obj role branch group))))
+
+  (RoleDef (role-def)
+           (- (role-children role of (role-def* ...)))
+           (+ (role-children role (role-def* ...))))
+
+  (Stmt (stmt)
+        (- (isa subj role of obj))
+        (+ (isa subj role obj))))
+
+; TODO display a language mapping again from ID to its name
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Nanopass transformers
+
+; TODO return also the dictionary with the transformations and find a place in the run-time for adding it
+; TODO scan all elements and create the corresponding dbid
+; TODO support relations without the complement
+
+(define-pass L0->L1 : L0 (x) -> L1()
+  (definitions
+    (define last-dbid (box 1))
+    (define dbid->name (make-hash))
+    (define name->dbid (make-hash))
+    (define dbid->complement (make-hash))
+
+    ; Get or create the name
+    ; complement set to #f if it is not applicable
+    (define (get-dbid-of-name! name complement)
+      (define complete-name (cons name complement))
+
+      (hash-ref
+         name->dbid
+         complete-name
+         (lambda ()
+           (define rid (unbox last-dbid))
+           (hash-set! name->dbid complete-name rid)
+           (hash-set! dbid->name rid complete-name)
+           (set-box! last-dbid (+ 1 rid))
+           rid)))
+
+    ; Return #f if there is no associated name.
+    ; Return ``(name . complement)`` with complement set to #f if not applicable.
+    (define (get-name-of-dbid! dbid)
+      (hash-ref dbid->name dbid (lambda () #f)))
+    )
+
+    (KB : KB (K) -> KB ()
+        [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
+         `(knowledge-base (,role-def* ...) (,stmt* ...))])
+
+    (RoleDef : RoleDef (R) -> RoleDef ()
+           [(role-children ,role ,of (,[role-def*] ...))
+            `(role-children ,(get-dbid-of-name! role of) (,role-def* ...))]
+           )
+
+    (Cntx : Cntx (C) -> Cntx ()
+          [(cntx-ref (,branch* ...) (,group* ...))
+           `(cntx-ref (,(map (lambda (x) (get-dbid-of-name! x #f)) branch*))
+                      (,(map (lambda (x) (get-dbid-of-name! x #f)) group*)))])
+
+   (Stmt : Stmt (S) -> Stmt ()
+         [(cntx-include ,[cntx])
+          `(cntx-include ,cntx)]
+
+         [(cntx-exclude ,[cntx])
+          `(cntx-exclude ,cntx)]
+
+         [(is ,subj ,role)
+          `(is ,(get-dbid-of-name! subj #f)
+               ,(get-dbid-of-name! role #f))]
+
+         [(isa ,subj ,role ,of ,obj)
+          `(isa ,(get-dbid-of-name! subj #f)
+                ,(get-dbid-of-name! role of)
+                ,(get-dbid-of-name! obj #f))]
+
+         [(cntx-def ,[cntx] (,[stmt*] ...))
+          `(cntx-def ,cntx (,stmt* ...))])
+
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -150,8 +177,12 @@
 
   (define (role-def/m root)
      (match root
+       ((list 'role-def "/" (list 'role name))
+          `(role-children ,(string->symbol name) #f))
        ((list 'role-def "/" (list 'role name) complement)
           `(role-children ,(string->symbol name) ,(string->symbol complement) ()))
+       ((list 'role-def "/" (list 'role name) (list 'role-children "-->" "(" children ... ")"))
+          `(role-children ,(string->symbol name) #f ,(map role-def/m children)))
        ((list 'role-def "/" (list 'role name) complement (list 'role-children "-->" "(" children ... ")"))
           `(role-children ,(string->symbol name) ,(string->symbol complement) ,(map role-def/m children)))
        ))
@@ -213,11 +244,9 @@
 # Comment 2
 
 /related to
-
-/again to
-
-
-$subj isa role
+/again1 to
+/again2 to
+/again3 to
 
 DOKNIL-SRC
 )
@@ -289,11 +318,16 @@ DOKNIL-SRC
   )
 )
 
+/subject of
+/subject2 of
+# TODO /subject3
+/city of
+
 $subj isa subject of $obj
 
 $subj2 isa subject2 of $obj2
 
-$subj3 isa subject3
+# TODO $subj3 isa subject3
 
 World --> {
   Tolkien/LordOfTheRings.cities --> {
@@ -304,17 +338,38 @@ World --> {
 DOKNIL-SRC
 )
 
+(define test-src4 #<<DOKNIL-SRC
+/related to
+/again1 to
+/again2 to
+/again3 to --> (
+  /inner1 from
+  /inner2 to
+  /inner3 to --> (
+    /inner4 to
+  )
+)
+DOKNIL-SRC
+)
+
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug
 
 (define (debug src)
   (define token-thunk (doknil-lexer (open-input-string src)))
-  (parse-to-datum token-thunk)
-)
+  (parse-to-datum token-thunk))
 
-(debug test-src3)
+(define t test-src3)
 
-(doknil-parser (open-input-string test-src3))
+(debug t)
 
-(parse-L0 (doknil-parser (open-input-string test-src3)))
+(~> t
+    open-input-string
+    doknil-parser)
 
+(~> t
+    open-input-string
+    doknil-parser
+    parse-L0
+    L0->L1
+    unparse-L1)

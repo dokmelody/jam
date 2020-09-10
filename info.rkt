@@ -17,6 +17,7 @@
                "brag-lib"
                "br-parser-tools-lib"
                "scribble-lib"
+               "threading-lib"
                "rackunit"))
 
 (define test-include-paths '("tests"))

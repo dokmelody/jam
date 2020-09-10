@@ -84,6 +84,7 @@ Implementation:
 
 DONE improved the semantic of Doknil with ``grouped Contexts``
 
+
 ## [Doknil] Create a demo KB combining all the parts
 
 ## [Doknil] P.A.R.A.
@@ -210,6 +211,28 @@ MAYBE a schema like this
   (object [this])
   (context [this]))
  )
+
+TODO find a way to link a clojure value/object to a database statment
+MAYBE insert the distance of CONTEXT and PARENT in the derived relation
+TODO select the nearest card in the UI using the DISTANCE attribute
+TODO a card can read from a file on resource directories
+TODO the card-db is a function returning a card as a value, given a card name/index
+TODO caching of cards allows to avoid regeneration of all cards
+TODO order also relations by transitive closure
+TODO cache/memoize the generation of a card
+TODO store facts inside resources or similar
+TODO during reading the title include the context "R1/R0" with "R0" being the parent
+TODO create a map with complete-hiearchy as a vector and used as key, and the ``context-hierarchy-id`` as value.
+It will be used for creating new contexts on demand.
+Then they will be inserted exploded inside ``doknil-db``.
+
+TODO find if Refs, Vars or Atoms must be used for adding new facts inside doknil-db at run-time
+MAYBE make the same thing for part and role hierarchies
+TODO store in a map/db the assocation between key and card object
+
+## MAYBE Disable contracts in production
+
+Racket functions (also system functions) have rather expensive contracts.
 
 # Done Tasks
 

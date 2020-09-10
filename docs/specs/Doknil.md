@@ -54,6 +54,8 @@ A ``subject`` can assume different roles for different owners. For example the s
 
 In Doknil a fact about a specific role is also a fact about the more generic role. For example if ``x isa Feature of p``, then ``x isa Task of p``.
 
+If a role has complement ``of`` then all its children roles must have the same complement, because it must be explicit that the role follow the "parts semantic".
+
 ### Object complements
 
 In a fact like ``$i isa issue of $p``, ``p`` is the object ``complement``. It is an instance for which ``i`` plays the role of ``Issue``.

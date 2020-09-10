@@ -6,7 +6,6 @@
 (require datalog)
 (provide doknil-db)
 
-
 (define doknil-db (make-theory))
 
 (define  (precalculate-reachable-cntx)

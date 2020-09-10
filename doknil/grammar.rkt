@@ -11,7 +11,7 @@ stmt:
 | include-cntx
 | exclude-cntx
 
-role-def: "/" role ID role-children?
+role-def: "/" role ID? role-children?
 
 role-children: "-->" "(" role-def* ")"
 
