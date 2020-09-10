@@ -102,50 +102,57 @@
 ;; Nanopass transformers
 
 ; TODO return also the dictionary with the transformations and find a place in the run-time for adding it
-; TODO scan all elements and create the corresponding dbid
+; MAYBE create a more clear data structure for management of names
 ; TODO support relations without the complement
 
-(define-pass L0->L1 : L0 (x) -> L1()
-  (definitions
-    (define last-dbid (box 1))
-    (define dbid->name (make-hash))
-    (define name->dbid (make-hash))
-    (define dbid->complement (make-hash))
+;; Create a unique and compact integer id for each name and complement pair.
+;; Use #f as complement, when complement is not applicable.
+(struct dbids
+  ([count #:mutable] ; int
+   to-name   ; int -> (name . (complement | #f))
+   from-name ; (name . (complement | #f)) -> int
+   ))
 
-    ; Get or create the name
-    ; complement set to #f if it is not applicable
-    (define (get-dbid-of-name! name complement)
+(define (make-dbids)
+   (dbids 1 (make-hash) (make-hash)))
+
+; Get or create the dbid associated to the name and complement.
+; symbol | string -> symbol | string | #f -> int
+(define (dbids-id! dbids name complement)
       (define complete-name (cons name complement))
 
       (hash-ref
-         name->dbid
+         (dbids-from-name dbids)
          complete-name
          (lambda ()
-           (define rid (unbox last-dbid))
-           (hash-set! name->dbid complete-name rid)
-           (hash-set! dbid->name rid complete-name)
-           (set-box! last-dbid (+ 1 rid))
+           (define rid (dbids-count dbids))
+           (hash-set! (dbids-from-name dbids) complete-name rid)
+           (hash-set! (dbids-to-name dbids) rid complete-name)
+           (set-dbids-count! dbids (+ 1 rid))
            rid)))
 
-    ; Return #f if there is no associated name.
-    ; Return ``(name . complement)`` with complement set to #f if not applicable.
-    (define (get-name-of-dbid! dbid)
-      (hash-ref dbid->name dbid (lambda () #f)))
-    )
+(define (dbids-name dbids dbid)
+  (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
 
-    (KB : KB (K) -> KB ()
+; MAYBE use dbids as an attribute of KB instead as of a return param
+(define-pass L0->L1 : L0 (x) -> L1()
+  (definitions
+
+    (define dbids (make-dbids)))
+
+    (KB : KB (K) -> KB (dbids)
         [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
          `(knowledge-base (,role-def* ...) (,stmt* ...))])
 
     (RoleDef : RoleDef (R) -> RoleDef ()
            [(role-children ,role ,of (,[role-def*] ...))
-            `(role-children ,(get-dbid-of-name! role of) (,role-def* ...))]
+            `(role-children ,(dbids-id! dbids role of) (,role-def* ...))]
            )
 
     (Cntx : Cntx (C) -> Cntx ()
           [(cntx-ref (,branch* ...) (,group* ...))
-           `(cntx-ref (,(map (lambda (x) (get-dbid-of-name! x #f)) branch*))
-                      (,(map (lambda (x) (get-dbid-of-name! x #f)) group*)))])
+           `(cntx-ref (,(map (lambda (x) (dbids-id! dbids x #f)) branch*))
+                      (,(map (lambda (x) (dbids-id! dbids x #f)) group*)))])
 
    (Stmt : Stmt (S) -> Stmt ()
          [(cntx-include ,[cntx])
@@ -155,13 +162,13 @@
           `(cntx-exclude ,cntx)]
 
          [(is ,subj ,role)
-          `(is ,(get-dbid-of-name! subj #f)
-               ,(get-dbid-of-name! role #f))]
+          `(is ,(dbids-id! dbids subj #f)
+               ,(dbids-id! dbids role #f))]
 
          [(isa ,subj ,role ,of ,obj)
-          `(isa ,(get-dbid-of-name! subj #f)
-                ,(get-dbid-of-name! role of)
-                ,(get-dbid-of-name! obj #f))]
+          `(isa ,(dbids-id! dbids subj #f)
+                ,(dbids-id! dbids role of)
+                ,(dbids-id! dbids obj #f))]
 
          [(cntx-def ,[cntx] (,[stmt*] ...))
           `(cntx-def ,cntx (,stmt* ...))])
@@ -356,8 +363,10 @@ DOKNIL-SRC
 ;; Debug
 
 (define (debug src)
-  (define token-thunk (doknil-lexer (open-input-string src)))
-  (parse-to-datum token-thunk))
+  (~> src
+      open-input-string
+      doknil-lexer
+      parse-to-datum))
 
 (define t test-src3)
 
