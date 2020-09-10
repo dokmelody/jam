@@ -56,7 +56,7 @@
       (knowledge-base (role-def* ...) (stmt* ...)))
 
   (RoleDef (role-def)
-    (role-children role of (role-def* ...)))
+    (role-children role (maybe of?) (role-def* ...)))
 
   (Cntx (cntx)
     (cntx-ref (branch* ...) (group* ...)))
@@ -89,7 +89,7 @@
    (+ (db-id (id subj obj role branch group))))
 
   (RoleDef (role-def)
-           (- (role-children role of (role-def* ...)))
+           (- (role-children role (maybe of?) (role-def* ...)))
            (+ (role-children role (role-def* ...))))
 
   (Stmt (stmt)
@@ -100,8 +100,6 @@
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass transformers
-
-; TODO support relations without the complement
 
 ;; Create a unique and compact integer id for each name and complement pair.
 ;; Use #f as complement, when complement is not applicable.
@@ -142,8 +140,8 @@
          `(knowledge-base (,role-def* ...) (,stmt* ...))])
 
     (RoleDef : RoleDef (R) -> RoleDef ()
-           [(role-children ,role ,of (,[role-def*] ...))
-            `(role-children ,(dbids-id! dbids role of) (,role-def* ...))]
+           [(role-children ,role ,of? (,[role-def*] ...))
+            `(role-children ,(dbids-id! dbids role of?) (,role-def* ...))]
            )
 
     (Cntx : Cntx (C) -> Cntx ()
@@ -185,7 +183,7 @@
   (define (role-def/m root)
      (match root
        ((list 'role-def "/" (list 'role name))
-          `(role-children ,(string->symbol name) #f))
+          `(role-children ,(string->symbol name) #f ()))
        ((list 'role-def "/" (list 'role name) complement)
           `(role-children ,(string->symbol name) ,(string->symbol complement) ()))
        ((list 'role-def "/" (list 'role name) (list 'role-children "-->" "(" children ... ")"))
@@ -327,14 +325,14 @@ DOKNIL-SRC
 
 /subject of
 /subject2 of
-# TODO /subject3
+/subject3
 /city of
 
 $subj isa subject of $obj
 
 $subj2 isa subject2 of $obj2
 
-# TODO $subj3 isa subject3
+$subj3 isa subject3
 
 World --> {
   Tolkien/LordOfTheRings.cities --> {
@@ -361,6 +359,10 @@ DOKNIL-SRC
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug
+
+(with-output-language (L0 RoleDef)
+  `(role-children subject3 #f ())
+  )
 
 (define (debug src)
   (~> src
