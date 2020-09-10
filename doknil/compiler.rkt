@@ -101,8 +101,6 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass transformers
 
-; TODO return also the dictionary with the transformations and find a place in the run-time for adding it
-; MAYBE create a more clear data structure for management of names
 ; TODO support relations without the complement
 
 ;; Create a unique and compact integer id for each name and complement pair.
@@ -134,13 +132,12 @@
 (define (dbids-name dbids dbid)
   (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
 
-; MAYBE use dbids as an attribute of KB instead as of a return param
-(define-pass L0->L1 : L0 (x) -> L1()
+(define-pass L0->L1-dbids : L0 (kb) -> L1 (dbids)
   (definitions
 
     (define dbids (make-dbids)))
 
-    (KB : KB (K) -> KB (dbids)
+    (KB : KB (K) -> KB ()
         [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
          `(knowledge-base (,role-def* ...) (,stmt* ...))])
 
@@ -173,7 +170,10 @@
          [(cntx-def ,[cntx] (,[stmt*] ...))
           `(cntx-def ,cntx (,stmt* ...))])
 
-  )
+  (values (KB kb) dbids))
+
+(define-pass L0->L1 : L0 (kb) -> L1 ()
+  (let-values ([(r1 r2) (L0->L1-dbids kb)]) r1))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -382,3 +382,4 @@ DOKNIL-SRC
     parse-L0
     L0->L1
     unparse-L1)
+
