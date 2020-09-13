@@ -19,14 +19,21 @@
 ;; TODO use this same structure for lookup during parsing
 ;; TODO the same for roles, and all other Doknil elements
 ;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
-;; TODO create a lookup function for passing from hierarchy names to id
-
 ;; TODO make sure to register also roles without a parent
 ;; TODO it is important showing explicitely overriden contexts
 ;; TODO in queries one can only specify branches without groups
-
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
+;; TODO update tests using the compiler API
+;; MAYBE remove complement from the run-time
+;; TODO add info about cntxt composition probably calculating it apart
+;; TODO cntx info became a single ID and not a chain and then a data structure memorize the hierarchy
+;; TODO move again in role-def the single name of a group part or cntx or role
+;; TODO refactor role generation and move the name inside the def again, because now it is compact
+;; TODO create a unique context-id for each definition
+;; TODO support definitions in advance
+;; TODO replace them with facts
+;; MAYBE add hierarchy of cntx and groups inside the map
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -41,6 +48,8 @@
 
 (define (cntx-group? x) (symbol? x))
 
+(define (name? x) (string? x))
+
 ;; A language similar to the Syntax Tree generated from the parser,
 ;; so it is easier to generate during parsing.
 (define-language L0
@@ -50,7 +59,8 @@
    (role (role))
    (complement (of))
    (cntx-branch (branch))
-   (cntx-group (group)))
+   (cntx-group (group))
+   (name (name)))
 
   (KB (kb)
       (knowledge-base (role-def* ...) (stmt* ...)))
@@ -66,7 +76,6 @@
         (cntx-exclude cntx)
         (is subj role)
         (isa subj role of obj)
-        role-def
         (cntx-def cntx (stmt* ...))
         )
 )
@@ -86,7 +95,10 @@
       (cntx-branch (branch))
       (cntx-group (group))
       )
-   (+ (db-id (id subj obj role branch group))))
+   (+ (db-id (id subj obj
+                 role parent-role
+                 branch group
+                 cntx-id parent-cntx-id branch-id parent-branch-id))))
 
   (RoleDef (role-def)
            (- (role-children role (maybe of?) (role-def* ...)))
@@ -96,7 +108,48 @@
         (- (isa subj role of obj))
         (+ (isa subj role obj))))
 
-; TODO display a language mapping again from ID to its name
+
+;; Transform role-def hierarchy from list of children to parent pointer.
+(define-language L2
+  (extends L1)
+
+  (RoleDef (role-def)
+           (- (role-children role (role-def* ...)))
+           (+ (role-children (maybe parent-role?) role))))
+
+#|
+;; Transform role-def hierarchy from list of children to parent pointer,
+;; and flatten the cntx info into a unique id for an hierarchy of branches and groups.
+(define-language L2
+  (extends L1)
+
+  (KB (kb)
+      (- (knowledge-base (role-def* ...) (stmt* ...)))
+      (+ (knwoledge-base (role-def* ...) (branch-def* ...) (cntx-def* ...) (stmt* ...))))
+
+  (RoleDef (role-def)
+           (- (role-children role (role-def* ...)))
+           (+ (role-children (maybe parent-role?) role)))
+
+  (BranchDef (branch-def)
+             (+ (branch-def (maybe parent-branch-id?) branch-id name)))
+
+  (CntxDef (cntx-def)
+           (+ (cntx-def branch-id (maybe parent-cntx-id) cntx-id name)))
+
+  (Stmt (stmt)
+        (- (isa subj role obj)
+           (is subj role)
+           (cntx-def cntx (stmt* ...))
+           (cntx-include cntx)
+           (cntx-exclude cntx)
+        )
+
+        (+ (isa cntx-id subj role obj)
+           (is cntx-id subj role)
+        ))
+  )
+|#
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass transformers
@@ -149,7 +202,7 @@
            `(cntx-ref (,(map (lambda (x) (dbids-id! dbids x #f)) branch*))
                       (,(map (lambda (x) (dbids-id! dbids x #f)) group*)))])
 
-   (Stmt : Stmt (S) -> Stmt ()
+    (Stmt : Stmt (S) -> Stmt ()
          [(cntx-include ,[cntx])
           `(cntx-include ,cntx)]
 
@@ -172,6 +225,56 @@
 
 (define-pass L0->L1 : L0 (kb) -> L1 ()
   (let-values ([(r1 r2) (L0->L1-dbids kb)]) r1))
+
+
+(define-pass L1->L2 : L1 (kb) -> L2 ()
+    (KB : KB (K) -> KB ()
+        [(knowledge-base (,role-def* ...) (,[stmt*] ...))
+         (let* ([role-def** (flatten (map (lambda (x) (flatRoleDef x #f)) role-def*))])
+           `(knowledge-base (,role-def** ...) (,stmt* ...)))])
+
+    (flatRoleDef : RoleDef (rc parent) -> * (rds)
+                 [(role-children ,role (,role-def* ...))
+                  (cons
+                   (with-output-language (L2 RoleDef) `(role-children ,parent ,role))
+                   (map (lambda (x) (flatRoleDef x role)) role-def*))]))
+
+
+#|
+(define-pass collect-role-defs : L1 (kb) -> * (list-of-role-defs)
+
+    (KB : KB (kb) -> * (list-of-role-defs)
+        [(knowledge-base (,role-def* ...) (,stmt* ...))
+        (append* (map (curry collect-role-defs) stmt*))])
+
+    (Stmt : Stmt (s) -> * (list-of-role-defs)
+          [(cntx-def ,cntx (,stmt* ...))
+           (append* (map (curry collect-role-defs) stmt*))]
+
+          [(role-children ,role (,role-def* ...))
+           (list s)]
+
+          [else '()])
+
+
+    (KB kb))
+
+(define-pass role-def-to-move? : (L1 Stmt) -> * (stmt_or_bool)
+  (Stmt : Stmt (s) -> * (stmt_or_bool)
+        [(role-children _ _ _) s]
+        [else #f]))
+
+;; Compile to Doknil runtime
+;; TODO make sure to pass a parameter to use for adding facts to the knowledge base
+;; TODO update the cache with negated fact after every update
+(define-pass L1->update-doknil-db! : L1 (kb db) -> * ()
+ (KB : KB (K) -> * ()
+  [(knowledge-base (,role-def* ...) (,stmt* ...))
+   (for ([i role-def*])
+     (set-box! db (+ 1 (unbox db))))])
+)
+
+|#
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -360,10 +463,6 @@ DOKNIL-SRC
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug
 
-(with-output-language (L0 RoleDef)
-  `(role-children subject3 #f ())
-  )
-
 (define (debug src)
   (~> src
       open-input-string
@@ -383,5 +482,10 @@ DOKNIL-SRC
     doknil-parser
     parse-L0
     L0->L1
-    unparse-L1)
+    L1->L2
+    unparse-L2)
 
+; TODO
+; (define db (box 0))
+; (L1->Doknil-runtime (L0->L1 (parse-L0 (doknil-parser (open-input-string t)))) db)
+; (unbox db)

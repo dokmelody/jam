@@ -2,15 +2,10 @@
 
 ## Stories
 
-### TODO Doknil parser
-
-TODO implement a parser of Doknil returning true if it parse correctly some Doknil code
-TODO define a syntax for the language
-TODO document the syntax of the language
 
 ### TODO Doknil compiler
 
-TODO to be fair some facts are intensional and it is important also using Clojure code so the syntax will be readable Clojure code. Manage this after a compiler is written and it is clear which API use for generating Doknil code inside Clojure.
+TODO to be fair some facts are intensional and it is important also using Racket code so the syntax will be readable Racket code. Manage this after a compiler is written and it is clear which API use for generating Doknil code inside Clojure.
 
 MAYBE during cards creation manage CONTEXT as a dynamic attribute
 MAYBE support current owner and role and context as dynamic attribute during declaration
@@ -24,10 +19,6 @@ TODO cards can be created combining chunks of code, in literate-programming styl
 TODO express Doknil rules as readable code and generate both the documentation card and the Clojure code
 TODO a CARD can be defined, but until it is not used in a CONTEXT, its implicit facts are not generated
 
-#### TODO Compare the size of Racket repo with Clojure repo, after installation of all tools
-
-FACT the Maven repo was more than 100M on .m2 directory
-
 ### TODO Doknil semantic
 
 TODO find a way for saying that a certain part of a company or similar believe in things different (like context)
@@ -35,8 +26,6 @@ TODO find a way for saying that a certain part of a company or similar believe i
 TODO branch.group is not important for the KB query and related semantic, but only in the UI navigation of the KB for showing the schema used, and editing it.
 
 TODO Create a syntax and semantic for queries
-
-TODO Rewrite unit tests of Doknil semantic in Doknil
 
 ### TODO DokMelody UI
 
@@ -235,6 +224,12 @@ TODO store in a map/db the assocation between key and card object
 Racket functions (also system functions) have rather expensive contracts.
 
 # Done Tasks
+
+### DONE Doknil parser
+
+TODO implement a parser of Doknil returning true if it parse correctly some Doknil code
+TODO define a syntax for the language
+TODO document the syntax of the language
 
 ### DONE [DevOp] Migrate from Clojure to Racket
 
