@@ -309,3 +309,78 @@ All other VM can be restarted/reallocated often, and after each restart they loo
 
 So the command associated to the run of the VM must recreate all from the beginning like a build file.
 
+## Nanopass
+
+### pass accepting and returning values
+
+The first returned value is the transformed AST and the second value is the calculated parameter.
+
+```
+(define-pass L0->L1-dbids : L0 (kb) -> L1 (dbids)
+  (definitions
+
+    (define dbids (make-dbids)))
+
+    (KB : KB (K) -> KB ()
+        [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
+         `(knowledge-base (,role-def* ...) (,stmt* ...))])
+
+    (RoleDef : RoleDef (R) -> RoleDef ()
+           [(role-children ,role ,of? (,[role-def*] ...))
+            `(role-children ,(dbids-id! dbids role of?) (,role-def* ...))]
+           )
+
+    (Cntx : Cntx (C) -> Cntx ()
+          [(cntx-ref (,branch* ...) (,group* ...))
+           `(cntx-ref (,(map (lambda (x) (dbids-id! dbids x #f)) branch*))
+                      (,(map (lambda (x) (dbids-id! dbids x #f)) group*)))])
+
+    (Stmt : Stmt (S) -> Stmt ()
+         [(cntx-include ,[cntx])
+          `(cntx-include ,cntx)]
+
+         [(cntx-exclude ,[cntx])
+          `(cntx-exclude ,cntx)]
+
+         [(is ,subj ,role)
+          `(is ,(dbids-id! dbids subj #f)
+               ,(dbids-id! dbids role #f))]
+
+         [(isa ,subj ,role ,of ,obj)
+          `(isa ,(dbids-id! dbids subj #f)
+                ,(dbids-id! dbids role of)
+                ,(dbids-id! dbids obj #f))]
+
+         [(cntx-def ,[cntx] (,[stmt*] ...))
+          `(cntx-def ,cntx (,stmt* ...))])
+
+  (values (KB kb) dbids))
+  
+(define-pass L0->L1 : L0 (kb) -> L1 ()
+  (let-values ([(r1 r2) (L0->L1-dbids kb)]) r1))
+```
+
+### Pass accepting parameters
+
+The first formal param is a place-holder for the  source AST and the second argument can be of any other type.
+
+### Names to use
+
+Never use the same name for the terminal and the terminal identiefier, so not ``name (name)`` but ``name-str (name)`` .
+
+There can not be the same non-terminal name, and prefix identier, so something like this is not allowed: 
+
+```
+  (NameDef (name-def)
+    (+ (name-def dbid name (maybe name?))))
+```
+
+use instead something like
+
+```
+  (NameDef (name-def)
+    (+ (name-deff dbid name (maybe name?))))
+```
+
+
+

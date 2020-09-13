@@ -29,10 +29,7 @@
 ;; TODO add info about cntxt composition probably calculating it apart
 ;; TODO cntx info became a single ID and not a chain and then a data structure memorize the hierarchy
 ;; TODO move again in role-def the single name of a group part or cntx or role
-;; TODO refactor role generation and move the name inside the def again, because now it is compact
 ;; TODO create a unique context-id for each definition
-;; TODO support definitions in advance
-;; TODO replace them with facts
 ;; MAYBE add hierarchy of cntx and groups inside the map
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,7 +45,7 @@
 
 (define (cntx-group? x) (symbol? x))
 
-(define (name? x) (string? x))
+(define (name-str? x) (string? x))
 
 ;; A language similar to the Syntax Tree generated from the parser,
 ;; so it is easier to generate during parsing.
@@ -60,7 +57,7 @@
    (complement (of))
    (cntx-branch (branch))
    (cntx-group (group))
-   (name (name)))
+   (name-str (name complement-name)))
 
   (KB (kb)
       (knowledge-base (role-def* ...) (stmt* ...)))
@@ -85,7 +82,6 @@
 (define (db-id? x) fixnum? x)
 
 ;; Replace identifiers with compact integer ID.
-;; Remove ``of`` and use only a ``role`` identifier.
 (define-language L1
   (extends L0)
   (terminals
@@ -95,10 +91,17 @@
       (cntx-branch (branch))
       (cntx-group (group))
       )
-   (+ (db-id (id subj obj
+   (+ (db-id (dbid subj obj
                  role parent-role
                  branch group
                  cntx-id parent-cntx-id branch-id parent-branch-id))))
+
+  (KB (kb)
+      (- (knowledge-base (role-def* ...) (stmt* ...)))
+      (+ (knowledge-base (name-def* ...) (role-def* ...) (stmt* ...))))
+
+  (NameDef (name-def)
+    (+ (name-deff dbid name (maybe complement-name?))))
 
   (RoleDef (role-def)
            (- (role-children role (maybe of?) (role-def* ...)))
@@ -107,7 +110,6 @@
   (Stmt (stmt)
         (- (isa subj role of obj))
         (+ (isa subj role obj))))
-
 
 ;; Transform role-def hierarchy from list of children to parent pointer.
 (define-language L2
@@ -183,14 +185,31 @@
 (define (dbids-name dbids dbid)
   (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
 
-(define-pass L0->L1-dbids : L0 (kb) -> L1 (dbids)
+(define (dbids->name-def* dbids)
+  (define (to-str n)
+    (cond
+      [(eq? n #f) #f]
+      [(string? n) n]
+      [(symbol? n) (symbol->string n)]
+      ))
+
+  (hash-map
+   (dbids-to-name dbids)
+   (lambda (dbid nc)
+     (match nc
+       ((cons name complement)
+        (with-output-language (L1 NameDef)
+          `(name-deff ,dbid ,(to-str name) ,(to-str complement))))))))
+
+(define-pass L0->L1 : L0 (kb) -> L1 ()
   (definitions
 
     (define dbids (make-dbids)))
 
     (KB : KB (K) -> KB ()
         [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
-         `(knowledge-base (,role-def* ...) (,stmt* ...))])
+         (let ([name-def** (dbids->name-def* dbids)])
+             `(knowledge-base (,name-def** ...) (,role-def* ...) (,stmt* ...)))])
 
     (RoleDef : RoleDef (R) -> RoleDef ()
            [(role-children ,role ,of? (,[role-def*] ...))
@@ -220,25 +239,20 @@
 
          [(cntx-def ,[cntx] (,[stmt*] ...))
           `(cntx-def ,cntx (,stmt* ...))])
-
-  (values (KB kb) dbids))
-
-(define-pass L0->L1 : L0 (kb) -> L1 ()
-  (let-values ([(r1 r2) (L0->L1-dbids kb)]) r1))
+)
 
 
 (define-pass L1->L2 : L1 (kb) -> L2 ()
     (KB : KB (K) -> KB ()
-        [(knowledge-base (,role-def* ...) (,[stmt*] ...))
+        [(knowledge-base (,[name-def*] ...) (,role-def* ...) (,[stmt*] ...))
          (let* ([role-def** (flatten (map (lambda (x) (flatRoleDef x #f)) role-def*))])
-           `(knowledge-base (,role-def** ...) (,stmt* ...)))])
+           `(knowledge-base (,name-def* ...) (,role-def** ...) (,stmt* ...)))])
 
     (flatRoleDef : RoleDef (rc parent) -> * (rds)
                  [(role-children ,role (,role-def* ...))
                   (cons
                    (with-output-language (L2 RoleDef) `(role-children ,parent ,role))
                    (map (lambda (x) (flatRoleDef x role)) role-def*))]))
-
 
 #|
 (define-pass collect-role-defs : L1 (kb) -> * (list-of-role-defs)
