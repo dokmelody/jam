@@ -116,7 +116,7 @@
 
   (RoleDef (role-def)
            (- (role-children role (role-def* ...)))
-           (+ (role-children (maybe parent-role?) role)))
+           (+ (role-children role (maybe parent-role?))))
 
 )
 
@@ -301,7 +301,7 @@
     (flat-RoleDef : RoleDef (rc parent) -> * (rds)
                  [(role-children ,role (,role-def* ...))
                   (cons
-                   (with-output-language (L2 RoleDef) `(role-children ,parent ,role))
+                   (with-output-language (L2 RoleDef) `(role-children ,role ,parent))
                    (map (lambda (x) (flat-RoleDef x role)) role-def*))]))
 
 (define (dbids->name-def* dbids)
