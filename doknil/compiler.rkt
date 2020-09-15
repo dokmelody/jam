@@ -4,6 +4,8 @@
 #lang racket
 
 (require racket/base
+         racket/serialize
+         racket/trace
          datalog
          nanopass
          threading
@@ -14,7 +16,6 @@
 ;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
 ;; or use instead an hash map of the complete hiearchy
 ;; TODO use a defalt NULL/nil value for some of the specified relations
-;; TODO when a new hierarchy is added, then all sub-hierarchies (if news) are added
 ;; TODO store in a data structure apart the associations between ids and complete hierarchy name
 ;; TODO use this same structure for lookup during parsing
 ;; TODO the same for roles, and all other Doknil elements
@@ -26,11 +27,7 @@
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
 ;; TODO update tests using the compiler API
 ;; MAYBE remove complement from the run-time
-;; TODO add info about cntxt composition probably calculating it apart
-;; TODO cntx info became a single ID and not a chain and then a data structure memorize the hierarchy
-;; TODO move again in role-def the single name of a group part or cntx or role
-;; TODO create a unique context-id for each definition
-;; MAYBE add hierarchy of cntx and groups inside the map
+;; TODO move "role" id before the parent for coherence
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -94,7 +91,9 @@
    (+ (db-id (dbid subj obj
                  role parent-role
                  branch group
-                 cntx-id parent-cntx-id branch-id parent-branch-id))))
+                 cntx-id parent-cntx-id branch-id parent-branch-id
+                 into-cntx-id from-cntx-id
+                 name-id))))
 
   (KB (kb)
       (- (knowledge-base (role-def* ...) (stmt* ...)))
@@ -117,27 +116,35 @@
 
   (RoleDef (role-def)
            (- (role-children role (role-def* ...)))
-           (+ (role-children (maybe parent-role?) role))))
-
-#|
-;; Transform role-def hierarchy from list of children to parent pointer,
-;; and flatten the cntx info into a unique id for an hierarchy of branches and groups.
-(define-language L2
-  (extends L1)
-
-  (KB (kb)
-      (- (knowledge-base (role-def* ...) (stmt* ...)))
-      (+ (knwoledge-base (role-def* ...) (branch-def* ...) (cntx-def* ...) (stmt* ...))))
-
-  (RoleDef (role-def)
-           (- (role-children role (role-def* ...)))
            (+ (role-children (maybe parent-role?) role)))
 
+)
+
+;; Flatten the cntx info into a unique id for an hierarchy of branches and groups.
+(define-language L3
+  (extends L2)
+
+  (KB (kb)
+      (- (knowledge-base (name-def* ...) (role-def* ...) (stmt* ...)))
+      (+ (knowledge-base (branch-def* ...)
+                         (cntx-def* ...)
+                         (cntx-explicit-tree* ...)
+                         (name-def* ...)
+                         (role-def* ...)
+                         (stmt* ...))))
+
   (BranchDef (branch-def)
-             (+ (branch-def (maybe parent-branch-id?) branch-id name)))
+             (+ (branch-deff branch-id (maybe parent-branch-id?) name-id)))
 
   (CntxDef (cntx-def)
-           (+ (cntx-def branch-id (maybe parent-cntx-id) cntx-id name)))
+           (+ (cntx-deff cntx-id branch-id (maybe parent-cntx-id?) name-id)))
+
+  (CntxExplicitTree (cntx-explicit-tree)
+                    (+ (cntx-include into-cntx-id from-cntx-id))
+                    (+ (cntx-exclude into-cntx-id from-cntx-id)))
+
+  (Cntx (cntx)
+    (- (cntx-ref (branch* ...) (group* ...))))
 
   (Stmt (stmt)
         (- (isa subj role obj)
@@ -150,11 +157,10 @@
         (+ (isa cntx-id subj role obj)
            (is cntx-id subj role)
         ))
-  )
-|#
+)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Nanopass transformers
+;; dbids
 
 ;; Create a unique and compact integer id for each name and complement pair.
 ;; Use #f as complement, when complement is not applicable.
@@ -164,11 +170,15 @@
    from-name ; (name . (complement | #f)) -> int
    ))
 
-(define (make-dbids)
-   (dbids 1 (make-hash) (make-hash)))
+(define dbids-empty-name 0)
 
-; Get or create the dbid associated to the name and complement.
-; symbol | string -> symbol | string | #f -> int
+(define (make-dbids)
+  (let ([r (dbids 0 (make-hash) (make-hash))])
+    (dbids-id! r "" #f)
+    r))
+
+;; Get or create the dbid associated to the name and complement.
+;; symbol | string -> symbol | string | #f -> int
 (define (dbids-id! dbids name complement)
       (define complete-name (cons name complement))
 
@@ -185,21 +195,62 @@
 (define (dbids-name dbids dbid)
   (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
 
-(define (dbids->name-def* dbids)
-  (define (to-str n)
-    (cond
-      [(eq? n #f) #f]
-      [(string? n) n]
-      [(symbol? n) (symbol->string n)]
-      ))
 
-  (hash-map
-   (dbids-to-name dbids)
-   (lambda (dbid nc)
-     (match nc
-       ((cons name complement)
-        (with-output-language (L1 NameDef)
-          `(name-deff ,dbid ,(to-str name) ,(to-str complement))))))))
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; cntxs
+
+;; Associate a unique id to a list of branches and groups.
+(struct cntxs
+  ([count #:mutable] ; integer
+   branches->>groups->>dbid        ; (list-names ...) -> (list names ...) -> dbid
+   )
+   #:transparent)
+
+(define cntxs-root-dbid 0)
+
+(define (make-cntxs)
+  (let* ([hs-group (make-hash (list (cons '() cntxs-root-dbid)))]
+         [hs-branch (make-hash (list (cons '() hs-group)))])
+    (cntxs 1 hs-branch)))
+
+(define (cntxs-new-count! cntxs)
+  (define r (cntxs-count cntxs))
+  (set-cntxs-count! cntxs (+ r 1))
+  r
+)
+
+;; Extend with a unique id for every sequence of missing branch and group names.
+;; (list string|symbol) -> (list string|symbol)
+(define (cntxs-extend! cntxs branches groups)
+  (define hs (cntxs-branches->>groups->>dbid cntxs))
+  (define lb (length branches))
+  (define lg (length groups))
+
+  ; Create an empty group for every missing branch
+  (do ([i 1 (+ i 1)])
+       [(> i lb)]
+    (let ([p (take branches i)])
+      (when (not (hash-has-key? hs p))
+        (define inner-hs (make-hash (list (cons '() (cntxs-new-count! cntxs)))))
+        (hash-set! hs p inner-hs)))
+  )
+
+  ; Create a group for every missing group
+  (define hs2 (hash-ref hs branches))
+  (do ([i 1 (+ i 1)])
+       [(> i lg)]
+    (let ([p (take groups i)])
+      (when (not (hash-has-key? hs2 p))
+        (hash-set! hs2 p (cntxs-new-count! cntxs)))))
+)
+
+(define (cntxs-get-dbid cntxs branches groups)
+  (define hs (hash-ref (cntxs-branches->>groups->>dbid cntxs) branches))
+  (hash-ref hs groups)
+)
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Nanopass transformers
 
 (define-pass L0->L1 : L0 (kb) -> L1 ()
   (definitions
@@ -241,54 +292,169 @@
           `(cntx-def ,cntx (,stmt* ...))])
 )
 
-
 (define-pass L1->L2 : L1 (kb) -> L2 ()
     (KB : KB (K) -> KB ()
         [(knowledge-base (,[name-def*] ...) (,role-def* ...) (,[stmt*] ...))
-         (let* ([role-def** (flatten (map (lambda (x) (flatRoleDef x #f)) role-def*))])
+         (let* ([role-def** (flatten (map (lambda (x) (flat-RoleDef x #f)) role-def*))])
            `(knowledge-base (,name-def* ...) (,role-def** ...) (,stmt* ...)))])
 
-    (flatRoleDef : RoleDef (rc parent) -> * (rds)
+    (flat-RoleDef : RoleDef (rc parent) -> * (rds)
                  [(role-children ,role (,role-def* ...))
                   (cons
                    (with-output-language (L2 RoleDef) `(role-children ,parent ,role))
-                   (map (lambda (x) (flatRoleDef x role)) role-def*))]))
+                   (map (lambda (x) (flat-RoleDef x role)) role-def*))]))
 
-#|
-(define-pass collect-role-defs : L1 (kb) -> * (list-of-role-defs)
+(define (dbids->name-def* dbids)
+  (define (to-str n)
+    (cond
+      [(eq? n #f) #f]
+      [(string? n) n]
+      [(symbol? n) (symbol->string n)]
+      ))
 
-    (KB : KB (kb) -> * (list-of-role-defs)
-        [(knowledge-base (,role-def* ...) (,stmt* ...))
-        (append* (map (curry collect-role-defs) stmt*))])
+  (hash-map
+   (dbids-to-name dbids)
+   (lambda (dbid nc)
+     (match nc
+       ((cons name complement)
+        (with-output-language (L1 NameDef)
+          `(name-deff ,dbid ,(to-str name) ,(to-str complement))))))))
 
-    (Stmt : Stmt (s) -> * (list-of-role-defs)
+;; Extract all the contexts used inside L2
+(define-pass L2->cntxs : L2 (kb) -> * (cntxs)
+  (definitions
+     (define r (make-cntxs)))
+
+  (KB : KB (K) -> * (bool)
+        [(knowledge-base (,name-def* ...) (,role-def* ...) (,[stmt*] ...)) #t])
+
+  (Stmt : Stmt (S) -> * (bool)
+          [(cntx-include ,[cntx]) #t]
+
+          [(cntx-exclude ,[cntx]) #t]
+
+          [(cntx-def ,[cntx] (,[stmt*] ...)) #t]
+
+          [else #t])
+
+  (Cntx : Cntx (C) -> * (bool)
+        [(cntx-ref (,branch* ...) (,group* ...))
+         (cntxs-extend! r branch* group*)])
+
+  ; main entry point
+  (begin
+    (KB kb)
+     r))
+
+(define-pass L2->L3 : L2 (kb) -> L3 ()
+  (definitions
+    (define cntxs (L2->cntxs kb))
+
+    (define cntxs-include '())
+    (define cntxs-exclude '())
+
+    (define (generate-cntxs-include)
+      (map (lambda (x)
+             (with-output-language (L3 CntxExplicitTree)
+               `(cntx-include ,(car x) ,(cdr x)))) cntxs-include))
+
+    (define (generate-cntxs-exclude)
+      (map (lambda (x)
+             (with-output-language (L3 CntxExplicitTree)
+               `(cntx-exclude ,(car x) ,(cdr x)))) cntxs-exclude))
+
+    (define (cntxs->BranchDef branch)
+      (let* ([branch-id (cntxs-get-dbid cntxs branch '())]
+
+             [parent-id (cond [(empty? branch) #f]
+                              [else (cntxs-get-dbid cntxs (drop-right branch 1) '() )])]
+
+             [name (cond [(empty? branch) dbids-empty-name]
+                         [else (last branch)])]
+
+             )
+        (with-output-language (L3 BranchDef)
+          `(branch-deff ,branch-id ,parent-id ,name))))
+
+    (define (cntxs->CntxDefs branch group)
+      (let* ([branch-id (cntxs-get-dbid cntxs branch '())]
+
+             [group-id (cntxs-get-dbid cntxs branch group)]
+
+             [parent-id (cond [(empty? group) #f]
+                              [else (cntxs-get-dbid cntxs branch (drop-right group 1))])]
+
+             [name (cond [(empty? group) dbids-empty-name]
+                         [else (last group)])]
+
+             )
+        (with-output-language (L3 CntxDef)
+          `(cntx-deff ,group-id ,branch-id ,parent-id ,name))))
+
+    (define (cntxs-generate-all-groups branch)
+      (let* ([groups (hash-ref (cntxs-branches->>groups->>dbid cntxs) branch)]
+             [cntxs (map (lambda (group) (cntxs->CntxDefs branch group)) (hash-keys groups))])
+         cntxs
+         ))
+
+    (define (cntxs-generate-all-all-groups)
+      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid cntxs))]
+             [r (map (lambda (branch) (cntxs-generate-all-groups branch)) branches)])
+         r
+         ))
+
+    (define (cntxs-generate-all-branches)
+      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid cntxs))])
+        (map (lambda (branch) (cntxs->BranchDef branch)) branches)))
+  )
+
+  (KB : KB (K) -> KB ()
+        [(knowledge-base (,[name-def*] ...) (,[role-def*] ...) (,stmt* ...))
+         (let* ([stmt** (flatten (map (lambda (x) (Stmt x cntxs-root-dbid)) stmt*))]
+                [branch-def** (flatten (cntxs-generate-all-branches))]
+                [cntx-def** (flatten (cntxs-generate-all-all-groups))]
+                [explicit-includes** (generate-cntxs-include)]
+                [explicit-includes** (generate-cntxs-exclude)]
+                [explicit-cntxs** (append (generate-cntxs-include) (generate-cntxs-exclude))]
+                )
+           `(knowledge-base
+             (,branch-def** ...)
+             (,cntx-def** ...)
+             (,explicit-cntxs** ...)
+             (,name-def* ...)
+             (,role-def* ...)
+             (,stmt** ...)))])
+
+  (Stmt : Stmt (S current-cntx-id) -> * (stmts)
+        [(cntx-include ,cntx)
+         (begin
+           (set! cntxs-include (cons (cons current-cntx-id (to-cntx-id cntx))))
+           '())]
+
+          [(cntx-exclude ,cntx)
+           (begin
+             (set! cntxs-exclude (cons (cons current-cntx-id (to-cntx-id cntx))))
+           '())]
+
           [(cntx-def ,cntx (,stmt* ...))
-           (append* (map (curry collect-role-defs) stmt*))]
+           (let* ([new-cntx-id (to-cntx-id cntx)])
+             (map (lambda (x) (Stmt x new-cntx-id)) stmt*))]
 
-          [(role-children ,role (,role-def* ...))
-           (list s)]
+          [(isa ,subj ,role ,obj) 
+           (let ([r (with-output-language (L3 Stmt)
+                      `(isa ,current-cntx-id ,subj ,role ,obj))])
+             (list r))]
 
-          [else '()])
+          [(is ,subj ,role)
+           (let ([r (with-output-language (L3 Stmt)
+                      `(is ,current-cntx-id ,subj ,role))])
+             (list r))])
 
+  (to-cntx-id : Cntx (C) -> * (dbid)
+              [(cntx-ref (,branch* ...) (,group* ...))
+               (cntxs-get-dbid cntxs branch* group*)])
 
-    (KB kb))
-
-(define-pass role-def-to-move? : (L1 Stmt) -> * (stmt_or_bool)
-  (Stmt : Stmt (s) -> * (stmt_or_bool)
-        [(role-children _ _ _) s]
-        [else #f]))
-
-;; Compile to Doknil runtime
-;; TODO make sure to pass a parameter to use for adding facts to the knowledge base
-;; TODO update the cache with negated fact after every update
-(define-pass L1->update-doknil-db! : L1 (kb db) -> * ()
- (KB : KB (K) -> * ()
-  [(knowledge-base (,role-def* ...) (,stmt* ...))
-   (for ([i role-def*])
-     (set-box! db (+ 1 (unbox db))))])
 )
-
-|#
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -483,9 +649,17 @@ DOKNIL-SRC
       doknil-lexer
       parse-to-datum))
 
-(define t test-src3)
+(define (debug2 src)
+  (~> src
+    open-input-string
+    doknil-parser
+    parse-L0
+    L0->L1
+    L1->L2
+    L2->cntxs
+    println))
 
-(debug t)
+(define t test-src3)
 
 (~> t
     open-input-string
@@ -497,7 +671,8 @@ DOKNIL-SRC
     parse-L0
     L0->L1
     L1->L2
-    unparse-L2)
+    L2->L3
+    unparse-L3)
 
 ; TODO
 ; (define db (box 0))

@@ -364,6 +364,32 @@ The first returned value is the transformed AST and the second value is the calc
 
 The first formal param is a place-holder for the  source AST and the second argument can be of any other type.
 
+### Quasiquation
+
+Quasiquotation used inside complex code is not supported. Whenever possible simplify with
+
+```
+           (let ([r (with-output-language (L3 Stmt)
+                      `(is ,current-cntx-id ,subj ,role))])
+             (list r))])
+
+
+         (let* ([stmt** (flatten (map (lambda (x) (Stmt x cntxs-root-dbid)) stmt*))]
+                [branch-def** (cntxs-generate-all-branches)]
+                [cntx-def** (cntxs-generate-all-all-groups)]
+                [explicit-includes** (generate-cntxs-include)]
+                [explicit-includes** (generate-cntxs-exclude)]
+                [explicit-cntxs** (append (generate-cntxs-include) (generate-cntxs-exclude))]
+                )
+           `(knowledge-base
+             (,branch-def** ...)
+             (,cntx-def** ...)
+             (,explicit-cntxs** ...)
+             (,name-def* ...)
+             (,role-def* ...)
+             (,stmt** ...)))])
+```
+
 ### Names to use
 
 Never use the same name for the terminal and the terminal identiefier, so not ``name (name)`` but ``name-str (name)`` .

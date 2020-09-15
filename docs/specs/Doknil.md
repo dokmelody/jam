@@ -84,7 +84,7 @@ In Doknil there are only links. Instances can have attributes, but they are mana
 
 ### Hierarchical contexts
 
-Facts can be valid only inside a certain ``context`` (e.g. a certain domain, paper, author, company, department, project). ``Contexts`` can form an hierarchy. ``World`` is the root context.
+Facts can be valid only inside a certain ``context`` (e.g. a certain domain, paper, author, company, department, project). ``Contexts`` can form an hierarchy. A missing context is the implicit ``Root`` context. 
 
 Facts are propagated automatically from parent to child contexts, but not from children to parent context.
 
