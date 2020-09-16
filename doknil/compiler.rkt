@@ -25,8 +25,6 @@
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
 ;; TODO update tests using the compiler API
-;; MAYBE remove complement from the run-time
-;; TODO move "role" id before the parent for coherence
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -77,6 +75,8 @@
 
 (define (db-id? x) fixnum? x)
 
+(define (is-part-of? x) (boolean? x))
+
 ;; Replace identifiers with compact integer ID.
 (define-language L1
   (extends L0)
@@ -92,7 +92,8 @@
                  branch group
                  cntx-id parent-cntx-id branch-id parent-branch-id
                  into-cntx-id from-cntx-id
-                 name-id))))
+                 name-id))
+      (is-part-of (is-part-of))))
 
   (KB (kb)
       (- (knowledge-base (role-def* ...) (stmt* ...)))
@@ -103,7 +104,7 @@
 
   (RoleDef (role-def)
            (- (role-children role (maybe of?) (role-def* ...)))
-           (+ (role-children role (role-def* ...))))
+           (+ (role-children role is-part-of (role-def* ...))))
 
   (Stmt (stmt)
         (- (isa subj role of obj))
@@ -114,8 +115,8 @@
   (extends L1)
 
   (RoleDef (role-def)
-           (- (role-children role (role-def* ...)))
-           (+ (role-children role (maybe parent-role?))))
+           (- (role-children role is-part-of (role-def* ...)))
+           (+ (role-children role is-part-of (maybe parent-role?))))
 
 )
 
@@ -263,7 +264,7 @@
 
     (RoleDef : RoleDef (R) -> RoleDef ()
            [(role-children ,role ,of? (,[role-def*] ...))
-            `(role-children ,(dbids-id! dbids role of?) (,role-def* ...))]
+            `(role-children ,(dbids-id! dbids role of?) ,(equal? of? "of") (,role-def* ...))]
            )
 
     (Cntx : Cntx (C) -> Cntx ()
@@ -298,9 +299,9 @@
            `(knowledge-base (,name-def* ...) (,role-def** ...) (,stmt* ...)))])
 
     (flat-RoleDef : RoleDef (rc parent) -> * (rds)
-                 [(role-children ,role (,role-def* ...))
+                 [(role-children ,role ,is-part-of (,role-def* ...))
                   (cons
-                   (with-output-language (L2 RoleDef) `(role-children ,role ,parent))
+                   (with-output-language (L2 RoleDef) `(role-children ,role ,is-part-of ,parent))
                    (map (lambda (x) (flat-RoleDef x role)) role-def*))]))
 
 (define (dbids->name-def* dbids)
@@ -474,7 +475,7 @@
            [(name-deff ,dbid ,name ,complement-name?) #t])
 
   (RoleDef : RoleDef (rd) -> * (bool)
-           [(role-children ,role ,parent-role?) #t])
+           [(role-children ,role ,is-part-of ,parent-role?) #t])
  
   (BranchDef : BranchDef (bd) -> * (bool)
              [(branch-deff ,branch-id ,parent-branch-id? ,name-id) #t])
@@ -708,7 +709,7 @@ World --> {
   $issue1 isa issue of $departmentX
 }
 
-# Try different branches
+# Assert facts on different branches
 
 World/Earth.places --> {
   $italy isa nation
@@ -761,8 +762,6 @@ DOKNIL-SRC
   }
 }
 |#
-
-
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug

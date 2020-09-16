@@ -62,14 +62,15 @@
    ;; For roles without a parent set parent to #f
    ;; COMPLEMENT is the ``of``, ``for``, ``to``, etc.. complement linking
    ;; the subject of a fact with its object.
-   ;; Only COMPLEMENT of type ``of`` derive also a ``part-of`` relationship.
+   ;; Only COMPLEMENT of type ``of`` derive also a ``part-of`` relationship,
+   ;; and it is marked as #t, meaning IS-PART-OF.
    ;;
    ;; A constraint it is that a child ROLE with a COMPLEMENT not of type ``of``
    ;; can not have a parent ROLE with COMPLEMENT ``of``. The reason it is that
    ;; all ``of`` relationships must be explicit at the moment of the definition
    ;; of the extensional fact, and not unexpected.
    ;;
-   ;; > (! (role ID COMPLEMENT PARENT))
+   ;; > (! (role ID IS-PART-OF PARENT))
 
    ;; The branch of a context. Something like ``world/x/y``.
    ;; The root context branch `world` has parent set to #f, and the special id 0
@@ -113,30 +114,30 @@
    ;; from a ROLE to a compatible ROLE
 
    ; A role is a sub-role of itself (reflexivity).
-   (! (:- (role-rec ROLE1 ROLE2 COMPLEMENT)
+   (! (:- (role-rec ROLE1 ROLE2 IS-PART-OF)
 
-          (role ROLE1 COMPLEMENT IGNORE1)
+          (role ROLE1 IS-PART-OF IGNORE1)
           (= ROLE1 ROLE2)
-          (!= IGNORE1 #t)))
+          (!= IGNORE1 'ignore)))
 
    ; Follow parent role
-   (! (:- (role-rec ROLE1 ROLE2 COMPLEMENT2)
+   (! (:- (role-rec ROLE1 ROLE2 IS-PART-OF2)
 
           (role ROLE1 IGNORE1 ROLE2)
-          (role ROLE2 COMPLEMENT2 IGNORE2)
-          (!= IGNORE1 #t)
-          (!= IGNORE2 #t)))
+          (role ROLE2 IS-PART-OF2 IGNORE2)
+          (!= IGNORE1 'ignore)
+          (!= IGNORE2 'ignore)))
 
 
    ; Transitive closure
-   (! (:- (role-rec ROLE1 ROLE3 COMPLEMENT3)
+   (! (:- (role-rec ROLE1 ROLE3 IS-PART-OF3)
 
           (role-rec ROLE1 ROLE2 IGNORE1)
           (role ROLE2 IGNORE2 ROLE3)
-          (role ROLE3 COMPLEMENT3 IGNORE3)
-          (!= IGNORE1 #t)
-          (!= IGNORE2 #t)
-          (!= IGNORE3 #t)))
+          (role ROLE3 IS-PART-OF3 IGNORE3)
+          (!= IGNORE1 'ignore)
+          (!= IGNORE2 'ignore)
+          (!= IGNORE3 'ignore)))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; Return all defined cntx groups of a branch.
@@ -147,7 +148,7 @@
    (! (:- (branch-group-rec BRANCH CNTX)
 
           (cntx CNTX BRANCH IGNORE1)
-          (!= IGNORE1 #t)))
+          (!= IGNORE1 'ignore)))
 
    ; Return the groups on the same branch.
    (! (:- (branch-group-rec BRANCH CNTX2)
@@ -163,7 +164,7 @@
    (! (:- (branch-rec BRANCH1 BRANCH2)
 
           (branch BRANCH1 IGNORE1)
-          (!= IGNORE1 #t)
+          (!= IGNORE1 'ignore)
           (= BRANCH1 BRANCH2)))
 
    ; Return extensional facts
@@ -202,7 +203,7 @@
           (cntx-rec2 BRANCH CNTX2)
           (include-cntx CNTX2 CNTX3)
           (cntx CNTX3 BRANCH4 IGNORE1)
-          (!= IGNORE1 #t)
+          (!= IGNORE1 'ignore)
           (cntx-rec1 BRANCH4 CNTX4)))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -236,8 +237,8 @@
 
           (cntx-rec3 BRANCH CNTX)
           (isa-fact FACT CNTX INSTANCE ROLE OWNER)
-          (role ROLE of IGNORE1)
-          (!= IGNORE1 #t)
+          (role ROLE #t IGNORE1)
+          (!= IGNORE1 'ignore)
           (!= OWNER #f)))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -257,13 +258,12 @@
 
           (isa-rec1 BRANCH INSTANCE ROLE OBJECT1 CNTX FACT)
           (is-direct-part-of BRANCH OBJECT1 OBJECT2 IGNORE2)
-          (!= IGNORE2 #t)))
+          (!= IGNORE2 'ignore)))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; Extend :isa-rec1 with transitive closure on hierarchy of roles.
 
-   (! (:- (isa BRANCH INSTANCE ROLE2 COMPLEMENT OBJECT CNTX FACT)
+   (! (:- (isa BRANCH INSTANCE ROLE2 IS-PART-OF OBJECT CNTX FACT)
 
           (isa-rec1 BRANCH INSTANCE ROLE1 OBJECT CNTX FACT)
-          (role-rec ROLE1 ROLE2 COMPLEMENT))))
-
+          (role-rec ROLE1 ROLE2 IS-PART-OF))))

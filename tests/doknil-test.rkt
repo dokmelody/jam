@@ -29,12 +29,12 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Define roles
 
-    (! (role related to #f))
-    (! (role task of related))
-    (! (role issue of task))
+    (! (role related #f #f))
+    (! (role task #t related))
+    (! (role issue #t task))
 
-    (! (role company of #f))
-    (! (role department of company))
+    (! (role company #t #f))
+    (! (role department #t company))
 
     (! (branch world #f))
     (! (cntx cntx-world world #f))
@@ -59,7 +59,7 @@
     (! (exclude-cntx cntx-tolkien-places cntx-places))
 
     (! (role nation #f #f))
-    (! (role city of related))
+    (! (role city #t related))
 
     (! (isa-fact fe-1 cntx-places italy nation #f))
     (! (isa-fact fe-2 cntx-places rome city italy))
@@ -70,42 +70,42 @@
 
   (check-query?
     "Role hierarchy"
-    (datalog doknil-db (? (role-rec issue PARENT-ROLE COMPLEMENT)))
-    (list (list (cons 'PARENT-ROLE 'issue) (cons 'COMPLEMENT 'of))
-          (list (cons 'PARENT-ROLE 'task)  (cons 'COMPLEMENT 'of))
-          (list (cons 'PARENT-ROLE 'related) (cons 'COMPLEMENT 'to))))
+    (datalog doknil-db (? (role-rec issue PARENT-ROLE IS-PART-OF)))
+    (list (list (cons 'PARENT-ROLE 'issue) (cons 'IS-PART-OF #t))
+          (list (cons 'PARENT-ROLE 'task)  (cons 'IS-PART-OF #t))
+          (list (cons 'PARENT-ROLE 'related) (cons 'IS-PART-OF #f))))
 
   (check-query?
     "Inheritance of facts 1"
-    (datalog doknil-db (? (isa world issue-1 issue COMPLEMENT OBJECT CNTX FACT)))
-    (list (list (cons 'COMPLEMENT 'of) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
-          (list (cons 'COMPLEMENT 'of) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
+    (datalog doknil-db (? (isa world issue-1 issue IS-PART-OF OBJECT CNTX FACT)))
+    (list (list (cons 'IS-PART-OF #t) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
+          (list (cons 'IS-PART-OF #t) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
           ))
 
   (check-query?
     "Inheritance of facts 2"
-    (datalog doknil-db (? (isa world issue-1 related COMPLEMENT OBJECT CNTX FACT)))
-    (list (list (cons 'COMPLEMENT 'to) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
-          (list (cons 'COMPLEMENT 'to) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
+    (datalog doknil-db (? (isa world issue-1 related IS-PART-OF OBJECT CNTX FACT)))
+    (list (list (cons 'IS-PART-OF #f) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
+          (list (cons 'IS-PART-OF #f) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
           ))
 
   (check-query?
     "Inheritance of facts 3"
-    (datalog doknil-db (? (isa world issue-1 task COMPLEMENT OBJECT CNTX FACT)))
-    (list (list (cons 'COMPLEMENT 'of) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
-          (list (cons 'COMPLEMENT 'of) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
+    (datalog doknil-db (? (isa world issue-1 task IS-PART-OF OBJECT CNTX FACT)))
+    (list (list (cons 'IS-PART-OF #t) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
+          (list (cons 'IS-PART-OF #t) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
     ))
 
 
   (check-query?
     "Cntx branch 1"
-    (datalog doknil-db (? (isa earth CITY city COMPLEMENT OBJECT CNTX FACT)))
-    (list (list (cons 'CITY 'rome) (cons 'COMPLEMENT 'of) (cons 'OBJECT 'italy) (cons 'CNTX 'cntx-places) (cons 'FACT 'fe-2))
+    (datalog doknil-db (? (isa earth CITY city IS-PART-OF OBJECT CNTX FACT)))
+    (list (list (cons 'CITY 'rome) (cons 'IS-PART-OF #t) (cons 'OBJECT 'italy) (cons 'CNTX 'cntx-places) (cons 'FACT 'fe-2))
           ))
 
   (check-query?
     "Cntx branch 2"
-    (datalog doknil-db (? (isa tolkien CITY city COMPLEMENT OBJECT CNTX FACT)))
-    (list (list (cons 'CITY 'gondor) (cons 'COMPLEMENT 'of) (cons 'OBJECT 'middle-earth) (cons 'CNTX 'cntx-tolkien-places) (cons 'FACT 'ft-2))
+    (datalog doknil-db (? (isa tolkien CITY city IS-PART-OF OBJECT CNTX FACT)))
+    (list (list (cons 'CITY 'gondor) (cons 'IS-PART-OF #t) (cons 'OBJECT 'middle-earth) (cons 'CNTX 'cntx-tolkien-places) (cons 'FACT 'ft-2))
     ))
 ))
