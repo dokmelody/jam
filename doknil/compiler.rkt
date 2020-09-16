@@ -4,7 +4,6 @@
 #lang racket
 
 (require racket/base
-         racket/serialize
          racket/trace
          datalog
          nanopass
@@ -428,12 +427,12 @@
   (Stmt : Stmt (S current-cntx-id) -> * (stmts)
         [(cntx-include ,cntx)
          (begin
-           (set! cntxs-include (cons (cons current-cntx-id (to-cntx-id cntx))))
+           (set! cntxs-include (cons (cons current-cntx-id (to-cntx-id cntx)) cntxs-include))
            '())]
 
           [(cntx-exclude ,cntx)
            (begin
-             (set! cntxs-exclude (cons (cons current-cntx-id (to-cntx-id cntx))))
+             (set! cntxs-exclude (cons (cons current-cntx-id (to-cntx-id cntx)) cntxs-exclude))
            '())]
 
           [(cntx-def ,cntx (,stmt* ...))
@@ -455,6 +454,49 @@
                (cntxs-get-dbid cntxs branch* group*)])
 
 )
+
+; MAYBE remove COMPLEMENT from run-time
+; MAYBE maintain on the run-time only the concept of PART-OF role
+
+;; Generate code for the run-time doknil-db
+(define-pass L3->doknil-db  : L3 (kb) -> * (bool)
+
+    (KB : KB (kb) -> * (bool)
+        [(knowledge-base
+          (,[branch-def*] ...)
+          (,[cntx-def*] ...)
+          (,[cntx-explicit-tree*] ...)
+          (,[name-def*] ...)
+          (,[role-def*] ...)
+          (,[stmt*] ...)) #t])
+
+  (NameDef : NameDef (nd) -> * (bool)
+           [(name-deff ,dbid ,name ,complement-name?) #t])
+
+  (RoleDef : RoleDef (rd) -> * (bool)
+           [(role-children ,role ,parent-role?) #t])
+ 
+  (BranchDef : BranchDef (bd) -> * (bool)
+             [(branch-deff ,branch-id ,parent-branch-id? ,name-id) #t])
+
+  (CntxDef : CntxDef (cd) -> * (bool)
+           [(cntx-deff ,cntx-id ,branch-id ,parent-cntx-id? ,name-id)
+            #t])
+
+  (CntxExplicitTree : CntxExplicitTree (et) -> * (bool)
+                    [(cntx-include ,into-cntx-id ,from-cntx-id) #t]
+                    [(cntx-exclude ,into-cntx-id ,from-cntx-id) #t]
+                    )
+
+  (Stmt : Stmt (s) -> * (bool)
+        [(isa ,cntx-id ,subj ,role ,obj) #t]
+
+        [(is ,cntx-id ,subj ,role) #t]
+        )
+
+  ;; Main body
+  (KB kb)
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -492,10 +534,10 @@
 
   (define (kb-stmt-part/m part)
     (match part
-      ((list 'include-cntx (list "!include" cntx))
+      ((list (list 'include-cntx "!include" cntx))
        `(cntx-include ,(cntx/m cntx)))
 
-      ((list 'exclude-cntx (list "!include" cntx))
+      ((list (list 'exclude-cntx "!exclude" cntx))
        `(cntx-exclude ,(cntx/m cntx)))
 
       ((list (list 'subject subj) isa (list 'role role))
@@ -640,6 +682,88 @@ DOKNIL-SRC
 DOKNIL-SRC
 )
 
+(define test-src5 #<<DOKNIL-SRC
+
+# Roles
+
+/nation
+
+/related to --> (
+  /task of --> (
+    /issue of
+  )
+
+  /city of
+
+  /company of --> (
+    /department of
+  )
+)
+
+# Company example
+
+World --> {
+  $acmeCorporation isa company
+  $departmentX isa department of $acmeCorporation
+  $issue1 isa issue of $departmentX
+}
+
+# Try different branches
+
+World/Earth.places --> {
+  $italy isa nation
+  $rome isa city of $italy
+}
+
+World/Earth/Tolkien.places --> {
+  !exclude World/Earth.places
+
+  $middleEarth isa nation
+  $gondor isa city of $middleEarth
+}
+
+DOKNIL-SRC
+)
+
+;; TODO support queries like this
+#|
+# Queries
+
+!query {
+  /World/?Cntx --> {
+    ?@fact1 {
+      $issue1 isa issue of ?$obj
+    }
+  }
+}
+
+!query {
+  /World/?Cntx --> {
+    ?@fact2 {
+      $issue1 isa task of ?$obj
+    }
+  }
+}
+
+!query {
+  /World/Earth --> {
+    ?@fact3 --> {
+      ?$city isa city of ?$obj
+    }
+  }
+}
+
+!query {
+  /World/Earth/Tolkien --> {
+    ?@fact4 {
+      ?$city isa city of ?$obj
+    }
+  }
+}
+|#
+
+
+
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug
 
@@ -659,7 +783,7 @@ DOKNIL-SRC
     L2->cntxs
     println))
 
-(define t test-src3)
+(define t test-src5)
 
 (~> t
     open-input-string
@@ -672,7 +796,7 @@ DOKNIL-SRC
     L0->L1
     L1->L2
     L2->L3
-    unparse-L3)
+    L3->doknil-db)
 
 ; TODO
 ; (define db (box 0))

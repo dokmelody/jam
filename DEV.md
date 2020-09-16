@@ -2,7 +2,6 @@
 
 ## Stories
 
-
 ### TODO Doknil compiler
 
 TODO to be fair some facts are intensional and it is important also using Racket code so the syntax will be readable Racket code. Manage this after a compiler is written and it is clear which API use for generating Doknil code inside Clojure.
@@ -200,6 +199,7 @@ MAYBE a schema like this
   (object [this])
   (context [this]))
  )
+```
 
 TODO find a way to link a clojure value/object to a database statment
 MAYBE insert the distance of CONTEXT and PARENT in the derived relation
