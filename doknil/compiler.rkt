@@ -456,11 +456,15 @@
 
 )
 
-; MAYBE remove COMPLEMENT from run-time
-; MAYBE maintain on the run-time only the concept of PART-OF role
-
 ;; Generate code for the run-time doknil-db
 (define-pass L3->doknil-db  : L3 (kb) -> * (bool)
+
+  (definitions
+
+    (define count-facts 1)
+
+    (define (doknil! fact) (datalog doknil-db (! fact)))
+    )
 
     (KB : KB (kb) -> * (bool)
         [(knowledge-base
@@ -475,24 +479,39 @@
            [(name-deff ,dbid ,name ,complement-name?) #t])
 
   (RoleDef : RoleDef (rd) -> * (bool)
-           [(role-children ,role ,is-part-of ,parent-role?) #t])
- 
+           [(role-children ,role ,is-part-of ,parent-role?)
+            (doknil! `(role ,role ,is-part-of ,parent-role?))
+            ])
+
   (BranchDef : BranchDef (bd) -> * (bool)
-             [(branch-deff ,branch-id ,parent-branch-id? ,name-id) #t])
+             [(branch-deff ,branch-id ,parent-branch-id? ,name-id)
+              (doknil! `(branch ,branch-id ,parent-branch-id?))
+             ])
 
   (CntxDef : CntxDef (cd) -> * (bool)
            [(cntx-deff ,cntx-id ,branch-id ,parent-cntx-id? ,name-id)
-            #t])
+            (doknil! `(cntx ,cntx-id ,branch-id ,parent-cntx-id?))
+            ])
 
   (CntxExplicitTree : CntxExplicitTree (et) -> * (bool)
-                    [(cntx-include ,into-cntx-id ,from-cntx-id) #t]
-                    [(cntx-exclude ,into-cntx-id ,from-cntx-id) #t]
+                    [(cntx-include ,into-cntx-id ,from-cntx-id)
+                     (doknil! `(include-cntx ,into-cntx-id ,from-cntx-id))
+                     ]
+                    [(cntx-exclude ,into-cntx-id ,from-cntx-id)
+                     (doknil! `(exclude-cntx ,into-cntx-id ,from-cntx-id))
+                     ]
                     )
 
   (Stmt : Stmt (s) -> * (bool)
-        [(isa ,cntx-id ,subj ,role ,obj) #t]
+        [(isa ,cntx-id ,subj ,role ,obj)
+         (doknil! `(isa ,count-facts ,cntx-id ,subj ,role ,obj))
+         (set! count-facts (add1 count-facts))
+         ]
 
-        [(is ,cntx-id ,subj ,role) #t]
+        [(is ,cntx-id ,subj ,role)
+         (doknil! `(is ,count-facts ,cntx-id ,subj ,role))
+         (set! count-facts (add1 count-facts))
+         ]
         )
 
   ;; Main body
@@ -797,7 +816,3 @@ DOKNIL-SRC
     L2->L3
     L3->doknil-db)
 
-; TODO
-; (define db (box 0))
-; (L1->Doknil-runtime (L0->L1 (parse-L0 (doknil-parser (open-input-string t)))) db)
-; (unbox db)
