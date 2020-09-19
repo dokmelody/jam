@@ -12,6 +12,94 @@
          "grammar.rkt"
          "runtime.rkt")
 
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; dbids
+
+;; Create a unique and compact integer id for each name and complement pair.
+;; Use #f as complement, when complement is not applicable.
+(struct dbids
+  ([count #:mutable] ; int
+   to-name   ; int -> (name . (complement | #f))
+   from-name ; (name . (complement | #f)) -> int
+   ))
+
+(define dbids-empty-name 0)
+
+(define (make-dbids)
+  (let ([r (dbids 0 (make-hash) (make-hash))])
+    (dbids-id! r "" #f)
+    r))
+
+;; Get or create the dbid associated to the name and complement.
+;; symbol | string -> symbol | string | #f -> int
+(define (dbids-id! dbids name complement)
+      (define complete-name (cons name complement))
+
+      (hash-ref
+         (dbids-from-name dbids)
+         complete-name
+         (lambda ()
+           (define rid (dbids-count dbids))
+           (hash-set! (dbids-from-name dbids) complete-name rid)
+           (hash-set! (dbids-to-name dbids) rid complete-name)
+           (set-dbids-count! dbids (+ 1 rid))
+           rid)))
+
+(define (dbids-name dbids dbid)
+  (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; cntxs
+
+;; Associate a unique id to a list of branches and groups.
+(struct cntxs
+  ([count #:mutable] ; integer
+   branches->>groups->>dbid        ; (list-names ...) -> (list names ...) -> dbid
+   )
+   #:transparent)
+
+(define cntxs-root-dbid 0)
+
+(define (make-cntxs)
+  (let* ([hs-group (make-hash (list (cons '() cntxs-root-dbid)))]
+         [hs-branch (make-hash (list (cons '() hs-group)))])
+    (cntxs 1 hs-branch)))
+
+(define (cntxs-new-count! cntxs)
+  (define r (cntxs-count cntxs))
+  (set-cntxs-count! cntxs (add1 r))
+  r
+)
+
+;; Extend with a unique id for every sequence of missing branch and group names.
+;; (list string|symbol) -> (list string|symbol)
+(define (cntxs-extend! cntxs branches groups)
+  (define hs (cntxs-branches->>groups->>dbid cntxs))
+  (define lb (length branches))
+  (define lg (length groups))
+
+  ; Create an empty group for every missing branch
+  (do ([i 1 (+ i 1)])
+       [(> i lb)]
+    (let ([p (take branches i)])
+      (when (not (hash-has-key? hs p))
+        (define inner-hs (make-hash (list (cons '() (cntxs-new-count! cntxs)))))
+        (hash-set! hs p inner-hs)))
+  )
+
+  ; Create a group for every missing group
+  (define hs2 (hash-ref hs branches))
+  (do ([i 1 (+ i 1)])
+       [(> i lg)]
+    (let ([p (take groups i)])
+      (when (not (hash-has-key? hs2 p))
+        (hash-set! hs2 p (cntxs-new-count! cntxs)))))
+)
+
+(define (cntxs-get-dbid cntxs branches groups)
+  (define hs (hash-ref (cntxs-branches->>groups->>dbid cntxs) branches))
+  (hash-ref hs groups)
+)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -64,6 +152,8 @@
 
 (define (is-part-of? x) (boolean? x))
 
+(define (data-struct-dbids? x) (dbids? x))
+
 ;; Replace identifiers with compact integer ID.
 (define-language L1
   (extends L0)
@@ -80,14 +170,12 @@
                  cntx-id parent-cntx-id branch-id parent-branch-id
                  into-cntx-id from-cntx-id
                  name-id))
+      (data-struct-dbids (data-struct-dbids))
       (is-part-of (is-part-of))))
 
   (KB (kb)
       (- (knowledge-base (role-def* ...) (stmt* ...)))
-      (+ (knowledge-base (name-def* ...) (role-def* ...) (stmt* ...))))
-
-  (NameDef (name-def)
-    (+ (name-deff dbid name (maybe complement-name?))))
+      (+ (knowledge-base data-struct-dbids (role-def* ...) (stmt* ...))))
 
   (RoleDef (role-def)
            (- (role-children role (maybe of?) (role-def* ...)))
@@ -112,11 +200,11 @@
   (extends L2)
 
   (KB (kb)
-      (- (knowledge-base (name-def* ...) (role-def* ...) (stmt* ...)))
+      (- (knowledge-base data-struct-dbids (role-def* ...) (stmt* ...)))
       (+ (knowledge-base (branch-def* ...)
                          (cntx-def* ...)
                          (cntx-explicit-tree* ...)
-                         (name-def* ...)
+                         data-struct-dbids
                          (role-def* ...)
                          (stmt* ...))))
 
@@ -146,95 +234,6 @@
         ))
 )
 
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; dbids
-
-;; Create a unique and compact integer id for each name and complement pair.
-;; Use #f as complement, when complement is not applicable.
-(struct dbids
-  ([count #:mutable] ; int
-   to-name   ; int -> (name . (complement | #f))
-   from-name ; (name . (complement | #f)) -> int
-   ))
-
-(define dbids-empty-name 0)
-
-(define (make-dbids)
-  (let ([r (dbids 0 (make-hash) (make-hash))])
-    (dbids-id! r "" #f)
-    r))
-
-;; Get or create the dbid associated to the name and complement.
-;; symbol | string -> symbol | string | #f -> int
-(define (dbids-id! dbids name complement)
-      (define complete-name (cons name complement))
-
-      (hash-ref
-         (dbids-from-name dbids)
-         complete-name
-         (lambda ()
-           (define rid (dbids-count dbids))
-           (hash-set! (dbids-from-name dbids) complete-name rid)
-           (hash-set! (dbids-to-name dbids) rid complete-name)
-           (set-dbids-count! dbids (+ 1 rid))
-           rid)))
-
-(define (dbids-name dbids dbid)
-  (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
-
-
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; cntxs
-
-;; Associate a unique id to a list of branches and groups.
-(struct cntxs
-  ([count #:mutable] ; integer
-   branches->>groups->>dbid        ; (list-names ...) -> (list names ...) -> dbid
-   )
-   #:transparent)
-
-(define cntxs-root-dbid 0)
-
-(define (make-cntxs)
-  (let* ([hs-group (make-hash (list (cons '() cntxs-root-dbid)))]
-         [hs-branch (make-hash (list (cons '() hs-group)))])
-    (cntxs 1 hs-branch)))
-
-(define (cntxs-new-count! cntxs)
-  (define r (cntxs-count cntxs))
-  (set-cntxs-count! cntxs (+ r 1))
-  r
-)
-
-;; Extend with a unique id for every sequence of missing branch and group names.
-;; (list string|symbol) -> (list string|symbol)
-(define (cntxs-extend! cntxs branches groups)
-  (define hs (cntxs-branches->>groups->>dbid cntxs))
-  (define lb (length branches))
-  (define lg (length groups))
-
-  ; Create an empty group for every missing branch
-  (do ([i 1 (+ i 1)])
-       [(> i lb)]
-    (let ([p (take branches i)])
-      (when (not (hash-has-key? hs p))
-        (define inner-hs (make-hash (list (cons '() (cntxs-new-count! cntxs)))))
-        (hash-set! hs p inner-hs)))
-  )
-
-  ; Create a group for every missing group
-  (define hs2 (hash-ref hs branches))
-  (do ([i 1 (+ i 1)])
-       [(> i lg)]
-    (let ([p (take groups i)])
-      (when (not (hash-has-key? hs2 p))
-        (hash-set! hs2 p (cntxs-new-count! cntxs)))))
-)
-
-(define (cntxs-get-dbid cntxs branches groups)
-  (define hs (hash-ref (cntxs-branches->>groups->>dbid cntxs) branches))
-  (hash-ref hs groups)
-)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass transformers
@@ -246,8 +245,7 @@
 
     (KB : KB (K) -> KB ()
         [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
-         (let ([name-def** (dbids->name-def* dbids)])
-             `(knowledge-base (,name-def** ...) (,role-def* ...) (,stmt* ...)))])
+         `(knowledge-base ,dbids (,role-def* ...) (,stmt* ...))])
 
     (RoleDef : RoleDef (R) -> RoleDef ()
            [(role-children ,role ,of? (,[role-def*] ...))
@@ -281,9 +279,9 @@
 
 (define-pass L1->L2 : L1 (kb) -> L2 ()
     (KB : KB (K) -> KB ()
-        [(knowledge-base (,[name-def*] ...) (,role-def* ...) (,[stmt*] ...))
+        [(knowledge-base ,data-struct-dbids (,role-def* ...) (,[stmt*] ...))
          (let* ([role-def** (flatten (map (lambda (x) (flat-RoleDef x #f)) role-def*))])
-           `(knowledge-base (,name-def* ...) (,role-def** ...) (,stmt* ...)))])
+           `(knowledge-base ,data-struct-dbids (,role-def** ...) (,stmt* ...)))])
 
     (flat-RoleDef : RoleDef (rc parent) -> * (rds)
                  [(role-children ,role ,is-part-of (,role-def* ...))
@@ -291,29 +289,13 @@
                    (with-output-language (L2 RoleDef) `(role-children ,role ,is-part-of ,parent))
                    (map (lambda (x) (flat-RoleDef x role)) role-def*))]))
 
-(define (dbids->name-def* dbids)
-  (define (to-str n)
-    (cond
-      [(eq? n #f) #f]
-      [(string? n) n]
-      [(symbol? n) (symbol->string n)]
-      ))
-
-  (hash-map
-   (dbids-to-name dbids)
-   (lambda (dbid nc)
-     (match nc
-       ((cons name complement)
-        (with-output-language (L1 NameDef)
-          `(name-deff ,dbid ,(to-str name) ,(to-str complement))))))))
-
 ;; Extract all the contexts used inside L2
 (define-pass L2->cntxs : L2 (kb) -> * (cntxs)
   (definitions
      (define r (make-cntxs)))
 
   (KB : KB (K) -> * (bool)
-        [(knowledge-base (,name-def* ...) (,role-def* ...) (,[stmt*] ...)) #t])
+      [(knowledge-base ,data-struct-dbids (,role-def* ...) (,[stmt*] ...)) #t])
 
   (Stmt : Stmt (S) -> * (bool)
           [(cntx-include ,[cntx]) #t]
@@ -396,7 +378,7 @@
   )
 
   (KB : KB (K) -> KB ()
-        [(knowledge-base (,[name-def*] ...) (,[role-def*] ...) (,stmt* ...))
+        [(knowledge-base ,data-struct-dbids (,[role-def*] ...) (,stmt* ...))
          (let* ([stmt** (flatten (map (lambda (x) (Stmt x cntxs-root-dbid)) stmt*))]
                 [branch-def** (flatten (cntxs-generate-all-branches))]
                 [cntx-def** (flatten (cntxs-generate-all-all-groups))]
@@ -408,7 +390,7 @@
              (,branch-def** ...)
              (,cntx-def** ...)
              (,explicit-cntxs** ...)
-             (,name-def* ...)
+             ,data-struct-dbids
              (,role-def* ...)
              (,stmt** ...)))])
 
@@ -448,7 +430,8 @@
 
   (definitions
 
-    (define count-facts 1)
+    (define count-facts (box 1))
+    (define (count-facts-next!) (set-box! count-facts (add1 (unbox count-facts))))
 
     (define (doknil! fact) (datalog doknil-db (! fact)))
     )
@@ -458,12 +441,9 @@
           (,[branch-def*] ...)
           (,[cntx-def*] ...)
           (,[cntx-explicit-tree*] ...)
-          (,[name-def*] ...)
+          ,data-struct-dbids
           (,[role-def*] ...)
           (,[stmt*] ...)) #t])
-
-  (NameDef : NameDef (nd) -> * (bool)
-           [(name-deff ,dbid ,name ,complement-name?) #t])
 
   (RoleDef : RoleDef (rd) -> * (bool)
            [(role-children ,role ,is-part-of ,parent-role?)
@@ -492,12 +472,12 @@
   (Stmt : Stmt (s) -> * (bool)
         [(isa ,cntx-id ,subj ,role ,obj)
          (doknil! `(isa ,count-facts ,cntx-id ,subj ,role ,obj))
-         (set! count-facts (add1 count-facts))
+         (count-facts-next!)
          ]
 
         [(is ,cntx-id ,subj ,role)
          (doknil! `(is ,count-facts ,cntx-id ,subj ,role))
-         (set! count-facts (add1 count-facts))
+         (count-facts-next!)
          ]
         )
 
@@ -516,7 +496,6 @@
 ;; TODO use one type of query where the query result is filtered deriving only more specific role and context
 ;; TODO rewrite regression tests for using the API
 ;; TODO add tests about consistency of the DB analyzing the Doknil source code
-;; TODO reuse/pass the name dictionary, MAYBE store in an useful way without using a language friendly mode
 ;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
 ;; or use instead an hash map of the complete hiearchy
 ;;
@@ -538,7 +517,7 @@
 
 ;; TODO convert back to names and not to ids
 ;; TODO find a good API to use
-(define (q-derived-roles ))
+;; (define (q-derived-roles ))
 
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
