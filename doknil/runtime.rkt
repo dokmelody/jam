@@ -4,7 +4,9 @@
 #lang racket
 
 (require datalog)
-(provide doknil-db)
+(provide doknil-db
+         precalculated-reachable-cntx-invalidate!
+         )
 
 (define doknil-db (make-theory))
 
@@ -37,6 +39,9 @@
   r)
 
 (define precalculated-reachable-cntx (box #f))
+
+(define (precalculated-reachable-cntx-invalidate!)
+  (set-box! precalculated-reachable-cntx #f))
 
 (define (reachable-cntx? branch cntx)
 

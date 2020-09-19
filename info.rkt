@@ -18,6 +18,7 @@
                "br-parser-tools-lib"
                "scribble-lib"
                "threading-lib"
+               "axe"
                "rackunit"))
 
 (define test-include-paths '("tests"))

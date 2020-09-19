@@ -12,19 +12,6 @@
          "grammar.rkt"
          "runtime.rkt")
 
-;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
-;; or use instead an hash map of the complete hiearchy
-;; TODO use a defalt NULL/nil value for some of the specified relations
-;; TODO store in a data structure apart the associations between ids and complete hierarchy name
-;; TODO use this same structure for lookup during parsing
-;; TODO the same for roles, and all other Doknil elements
-;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
-;; TODO make sure to register also roles without a parent
-;; TODO it is important showing explicitely overriden contexts
-;; TODO in queries one can only specify branches without groups
-;; TODO check that cntx itself is returned, and so no facts are left behind
-;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
-;; TODO update tests using the compiler API
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -515,8 +502,44 @@
         )
 
   ;; Main body
-  (KB kb)
-  )
+  (begin
+    (KB kb)
+    (precalculated-reachable-cntx-invalidate!)
+  ))
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Queries
+;; Up to date only simple queries are supported and a "native"
+;; Lisp interface is used. No special query language is implemented
+;; right now.
+
+;; TODO use one type of query where the query result is filtered deriving only more specific role and context
+;; TODO rewrite regression tests for using the API
+;; TODO add tests about consistency of the DB analyzing the Doknil source code
+;; TODO reuse/pass the name dictionary, MAYBE store in an useful way without using a language friendly mode
+;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
+;; or use instead an hash map of the complete hiearchy
+;;
+;; TODO use a defalt NULL/nil value for some of the specified relations
+;; TODO store in a data structure apart the associations between ids and complete hierarchy name
+;; TODO use this same structure for lookup during parsing
+;; TODO the same for roles, and all other Doknil elements
+;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
+;; TODO make sure to register also roles without a parent
+;; TODO it is important showing explicitely overriden contexts
+;; TODO in queries one can only specify branches without groups
+;; TODO check that cntx itself is returned, and so no facts are left behind
+;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
+;; TODO update tests using the compiler API
+
+;; DONE up to date for simplyfing life, I use an hash map mapping from variable name to value, so the code is a mix between
+;; this decision and my decision
+;; FACT I switch to language axe that has a more friendly dict navigation and it is good enough up to date
+
+;; TODO convert back to names and not to ids
+;; TODO find a good API to use
+(define (q-derived-roles ))
+
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -745,39 +768,50 @@ World/Earth/Tolkien.places --> {
 DOKNIL-SRC
 )
 
+;; TODO the usefull queries are probably very fews and I can use only a Lisp API instead of creating a distinct PL
+
 ;; TODO support queries like this
 #|
 # Queries
 
-!query {
-  /World/?Cntx --> {
-    ?@fact1 {
-      $issue1 isa issue of ?$obj
+!query, /World/?Cntx --> {
+    @Fact(?$fact1), $issue1 isa issue of ?$obj
+    !check, ?$fact1.role == issue
+
+    !check {
+      ?$fact1.role.complement == of
+      ?$fact1.obj == ?$obj
     }
-  }
+
+    !check, ?$fact1 {
+      ~.role == issue
+      ~.role.complement == of
+    }
+
+    !check, ?$fact1 {
+      ~.role {
+        ~ == issue
+        ~.complement == of
+        ~~.obj == ?$obj
+      }
+    }
 }
 
 !query {
   /World/?Cntx --> {
-    ?@fact2 {
-      $issue1 isa task of ?$obj
-    }
+    $issue1 isa task of ?$obj
   }
 }
 
 !query {
   /World/Earth --> {
-    ?@fact3 --> {
-      ?$city isa city of ?$obj
-    }
+    @Fact(?fact3), ?$city isa city of ?$obj
   }
 }
 
 !query {
   /World/Earth/Tolkien --> {
-    ?@fact4 {
-      ?$city isa city of ?$obj
-    }
+    @Fact(?fact4), ?$city isa city of ?$obj
   }
 }
 |#
