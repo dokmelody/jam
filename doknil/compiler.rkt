@@ -48,6 +48,7 @@
 (define (dbids-name dbids dbid)
   (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
 
+
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; cntxs
 
@@ -102,6 +103,27 @@
 )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Runtime env with result of incremental compilation.
+;; New facts, names and rules are added to a global Doknil run-time environment.
+;; In this way it is possible adding at run-time new facts and rules.
+
+;; NOTE: doknil defined in "doknil/runtime.rkt" is part of the environment.
+
+;; The dbids used for (incremental) compilation of Doknil code to doknil run-time.
+(define doknil-dbids (make-dbids))
+
+;; The cntxs used for (incremental) compilation of Doknil code
+(define doknil-cntxs (make-cntxs))
+
+;; Count the extensional (i.e. explicit) facts.
+(define count-facts (box 1))
+
+(define (count-facts-next!) (set-box! count-facts (add1 (unbox count-facts))))
+
+;; Add a fact the doknil env
+(define (doknil! fact) (datalog doknil-db (! fact)))
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
 
 (define (instance? x) (symbol? x))
@@ -152,8 +174,6 @@
 
 (define (is-part-of? x) (boolean? x))
 
-(define (data-struct-dbids? x) (dbids? x))
-
 ;; Replace identifiers with compact integer ID.
 (define-language L1
   (extends L0)
@@ -170,12 +190,11 @@
                  cntx-id parent-cntx-id branch-id parent-branch-id
                  into-cntx-id from-cntx-id
                  name-id))
-      (data-struct-dbids (data-struct-dbids))
       (is-part-of (is-part-of))))
 
   (KB (kb)
       (- (knowledge-base (role-def* ...) (stmt* ...)))
-      (+ (knowledge-base data-struct-dbids (role-def* ...) (stmt* ...))))
+      (+ (knowledge-base (role-def* ...) (stmt* ...))))
 
   (RoleDef (role-def)
            (- (role-children role (maybe of?) (role-def* ...)))
@@ -200,11 +219,10 @@
   (extends L2)
 
   (KB (kb)
-      (- (knowledge-base data-struct-dbids (role-def* ...) (stmt* ...)))
+      (- (knowledge-base (role-def* ...) (stmt* ...)))
       (+ (knowledge-base (branch-def* ...)
                          (cntx-def* ...)
                          (cntx-explicit-tree* ...)
-                         data-struct-dbids
                          (role-def* ...)
                          (stmt* ...))))
 
@@ -239,23 +257,20 @@
 ;; Nanopass transformers
 
 (define-pass L0->L1 : L0 (kb) -> L1 ()
-  (definitions
-
-    (define dbids (make-dbids)))
 
     (KB : KB (K) -> KB ()
         [(knowledge-base (,[role-def*] ...) (,[stmt*] ...))
-         `(knowledge-base ,dbids (,role-def* ...) (,stmt* ...))])
+         `(knowledge-base (,role-def* ...) (,stmt* ...))])
 
     (RoleDef : RoleDef (R) -> RoleDef ()
            [(role-children ,role ,of? (,[role-def*] ...))
-            `(role-children ,(dbids-id! dbids role of?) ,(equal? of? "of") (,role-def* ...))]
+            `(role-children ,(dbids-id! doknil-dbids role of?) ,(equal? of? "of") (,role-def* ...))]
            )
 
     (Cntx : Cntx (C) -> Cntx ()
           [(cntx-ref (,branch* ...) (,group* ...))
-           `(cntx-ref (,(map (lambda (x) (dbids-id! dbids x #f)) branch*))
-                      (,(map (lambda (x) (dbids-id! dbids x #f)) group*)))])
+           `(cntx-ref (,(map (lambda (x) (dbids-id! doknil-dbids x #f)) branch*))
+                      (,(map (lambda (x) (dbids-id! doknil-dbids x #f)) group*)))])
 
     (Stmt : Stmt (S) -> Stmt ()
          [(cntx-include ,[cntx])
@@ -265,13 +280,13 @@
           `(cntx-exclude ,cntx)]
 
          [(is ,subj ,role)
-          `(is ,(dbids-id! dbids subj #f)
-               ,(dbids-id! dbids role #f))]
+          `(is ,(dbids-id! doknil-dbids subj #f)
+               ,(dbids-id! doknil-dbids role #f))]
 
          [(isa ,subj ,role ,of ,obj)
-          `(isa ,(dbids-id! dbids subj #f)
-                ,(dbids-id! dbids role of)
-                ,(dbids-id! dbids obj #f))]
+          `(isa ,(dbids-id! doknil-dbids subj #f)
+                ,(dbids-id! doknil-dbids role of)
+                ,(dbids-id! doknil-dbids obj #f))]
 
          [(cntx-def ,[cntx] (,[stmt*] ...))
           `(cntx-def ,cntx (,stmt* ...))])
@@ -279,9 +294,9 @@
 
 (define-pass L1->L2 : L1 (kb) -> L2 ()
     (KB : KB (K) -> KB ()
-        [(knowledge-base ,data-struct-dbids (,role-def* ...) (,[stmt*] ...))
+        [(knowledge-base (,role-def* ...) (,[stmt*] ...))
          (let* ([role-def** (flatten (map (lambda (x) (flat-RoleDef x #f)) role-def*))])
-           `(knowledge-base ,data-struct-dbids (,role-def** ...) (,stmt* ...)))])
+           `(knowledge-base (,role-def** ...) (,stmt* ...)))])
 
     (flat-RoleDef : RoleDef (rc parent) -> * (rds)
                  [(role-children ,role ,is-part-of (,role-def* ...))
@@ -289,13 +304,11 @@
                    (with-output-language (L2 RoleDef) `(role-children ,role ,is-part-of ,parent))
                    (map (lambda (x) (flat-RoleDef x role)) role-def*))]))
 
-;; Extract all the contexts used inside L2
-(define-pass L2->cntxs : L2 (kb) -> * (cntxs)
-  (definitions
-     (define r (make-cntxs)))
+;; Extract all the contexts used inside L2 and save them in doknil-cntxs
+(define-pass L2->cntxs : L2 (kb) -> * (bool)
 
   (KB : KB (K) -> * (bool)
-      [(knowledge-base ,data-struct-dbids (,role-def* ...) (,[stmt*] ...)) #t])
+      [(knowledge-base (,role-def* ...) (,[stmt*] ...)) #t])
 
   (Stmt : Stmt (S) -> * (bool)
           [(cntx-include ,[cntx]) #t]
@@ -308,16 +321,13 @@
 
   (Cntx : Cntx (C) -> * (bool)
         [(cntx-ref (,branch* ...) (,group* ...))
-         (cntxs-extend! r branch* group*)])
+         (cntxs-extend! doknil-cntxs branch* group*)])
 
   ; main entry point
-  (begin
-    (KB kb)
-     r))
+  (KB kb))
 
 (define-pass L2->L3 : L2 (kb) -> L3 ()
   (definitions
-    (define cntxs (L2->cntxs kb))
 
     (define cntxs-include '())
     (define cntxs-exclude '())
@@ -333,10 +343,10 @@
                `(cntx-exclude ,(car x) ,(cdr x)))) cntxs-exclude))
 
     (define (cntxs->BranchDef branch)
-      (let* ([branch-id (cntxs-get-dbid cntxs branch '())]
+      (let* ([branch-id (cntxs-get-dbid doknil-cntxs branch '())]
 
              [parent-id (cond [(empty? branch) #f]
-                              [else (cntxs-get-dbid cntxs (drop-right branch 1) '() )])]
+                              [else (cntxs-get-dbid doknil-cntxs (drop-right branch 1) '() )])]
 
              [name (cond [(empty? branch) dbids-empty-name]
                          [else (last branch)])]
@@ -346,12 +356,12 @@
           `(branch-deff ,branch-id ,parent-id ,name))))
 
     (define (cntxs->CntxDefs branch group)
-      (let* ([branch-id (cntxs-get-dbid cntxs branch '())]
+      (let* ([branch-id (cntxs-get-dbid doknil-cntxs branch '())]
 
-             [group-id (cntxs-get-dbid cntxs branch group)]
+             [group-id (cntxs-get-dbid doknil-cntxs branch group)]
 
              [parent-id (cond [(empty? group) #f]
-                              [else (cntxs-get-dbid cntxs branch (drop-right group 1))])]
+                              [else (cntxs-get-dbid doknil-cntxs branch (drop-right group 1))])]
 
              [name (cond [(empty? group) dbids-empty-name]
                          [else (last group)])]
@@ -361,24 +371,24 @@
           `(cntx-deff ,group-id ,branch-id ,parent-id ,name))))
 
     (define (cntxs-generate-all-groups branch)
-      (let* ([groups (hash-ref (cntxs-branches->>groups->>dbid cntxs) branch)]
+      (let* ([groups (hash-ref (cntxs-branches->>groups->>dbid doknil-cntxs) branch)]
              [cntxs (map (lambda (group) (cntxs->CntxDefs branch group)) (hash-keys groups))])
          cntxs
          ))
 
     (define (cntxs-generate-all-all-groups)
-      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid cntxs))]
+      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid doknil-cntxs))]
              [r (map (lambda (branch) (cntxs-generate-all-groups branch)) branches)])
          r
          ))
 
     (define (cntxs-generate-all-branches)
-      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid cntxs))])
+      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid doknil-cntxs))])
         (map (lambda (branch) (cntxs->BranchDef branch)) branches)))
   )
 
   (KB : KB (K) -> KB ()
-        [(knowledge-base ,data-struct-dbids (,[role-def*] ...) (,stmt* ...))
+        [(knowledge-base (,[role-def*] ...) (,stmt* ...))
          (let* ([stmt** (flatten (map (lambda (x) (Stmt x cntxs-root-dbid)) stmt*))]
                 [branch-def** (flatten (cntxs-generate-all-branches))]
                 [cntx-def** (flatten (cntxs-generate-all-all-groups))]
@@ -390,7 +400,6 @@
              (,branch-def** ...)
              (,cntx-def** ...)
              (,explicit-cntxs** ...)
-             ,data-struct-dbids
              (,role-def* ...)
              (,stmt** ...)))])
 
@@ -421,27 +430,24 @@
 
   (to-cntx-id : Cntx (C) -> * (dbid)
               [(cntx-ref (,branch* ...) (,group* ...))
-               (cntxs-get-dbid cntxs branch* group*)])
+               (cntxs-get-dbid doknil-cntxs branch* group*)])
+
+  ;; Main entry point
+  (begin
+    ; first update doknil-cntxs
+    (L2->cntxs kb)
+    (KB kb))
 
 )
 
 ;; Generate code for the run-time doknil-db
 (define-pass L3->doknil-db  : L3 (kb) -> * (bool)
 
-  (definitions
-
-    (define count-facts (box 1))
-    (define (count-facts-next!) (set-box! count-facts (add1 (unbox count-facts))))
-
-    (define (doknil! fact) (datalog doknil-db (! fact)))
-    )
-
     (KB : KB (kb) -> * (bool)
         [(knowledge-base
           (,[branch-def*] ...)
           (,[cntx-def*] ...)
           (,[cntx-explicit-tree*] ...)
-          ,data-struct-dbids
           (,[role-def*] ...)
           (,[stmt*] ...)) #t])
 
@@ -485,7 +491,7 @@
   (begin
     (KB kb)
     (precalculated-reachable-cntx-invalidate!)
-  ))
+    #t))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Queries
@@ -516,7 +522,7 @@
 ;; FACT I switch to language axe that has a more friendly dict navigation and it is good enough up to date
 
 ;; TODO convert back to names and not to ids
-;; TODO find a good API to use
+;; TODO find a good API to use: it should ask only to Doknil run-time and it must use the dbids only for name conversion
 ;; (define (q-derived-roles ))
 
 
