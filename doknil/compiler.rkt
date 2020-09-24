@@ -161,11 +161,13 @@
 
 ;; Return a string for representing the cntx, like "A/B/C.x.y.z"
 (define (q-cntx-dbid->complete-names dbid)
-  (define dbids (q-cntx-dbid->dbids dbid))
-
-  (string-append
-    (string-join (map (curry symbol->string) (q-cntx-dbids->branch-names dbids)) "/")
-    (string-join (map (curry symbol->string) (q-cntx-dbids->group-names dbids)) "." #:before-first ".")))
+  (let* ([dbids (q-cntx-dbid->dbids dbid)]
+         [b-names (q-cntx-dbids->branch-names dbids)]
+         [g-names (q-cntx-dbids->group-names dbids)]
+         [b-part (string-join (map (curry symbol->string) b-names) "/")]
+         [g-part (cond [(empty? g-names) ""]
+                       [else (string-join (map (curry symbol->string) g-names) ".")])])
+  (string-append b-part g-part)))
 
 ;; Describe cntx info, for debug porpouse.
 (define (q-describe-cntxs)
@@ -180,6 +182,8 @@
     (filter (lambda (x) (not (eq? #f x)))
           (hash-map (dbids-from-name doknil-dbids) (curry describe)))
     "\n"))
+
+
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -655,6 +659,27 @@
     (fact fact-id (hash-ref d 'CNTX) (hash-ref d 'SUBJ) (hash-ref d 'ROLE) (hash-ref d 'OBJ))
   ))
 
+(define (fact-describe fact)
+  (define rd (q-role-def (fact-role-id fact)))
+
+  (string-append
+   (q-cntx-dbid->complete-names (fact-cntx-id fact))
+   " --> { "
+   (symbol->string (q-name (fact-subject-id fact)))
+   " isa "
+   (symbol->string (role-def-name rd))
+   (cond
+     [(eq? (fact-object-id? fact) #f) ""]
+     [else (string-append
+            (symbol->string (role-def-complement rd))
+            " "
+            (symbol->string (q-name (fact-object-id? fact)))
+            )])
+   " }"))
+
+(define (q-describe-fact fact-id)
+  (fact-describe (q-fact fact-id)))
+
 (define (q-role-def role-id)
    (let ([d (first (datalog doknil-db (? (role #,role-id IS-PART-OF PARENT-ID))))])
         (role-def role-id
@@ -690,6 +715,7 @@
 
 ;; TODO implement
 (define (q-facts-with-obj-role cntx-id obj-id role-id) #f)
+
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -983,7 +1009,7 @@ DOKNIL-SRC
     L0->L1
     L1->L2
     L2->cntxs
-    println))
+    displayln))
 
 (define t test-src5)
 
@@ -1012,13 +1038,14 @@ doknil-dbids
 (q-cntx-dbid->dbids 24)
 (q-cntx-dbids->branch-names (q-cntx-dbid->dbids 24))
 
-;; TODO not formatted in the correct way
-(println (q-describe-cntxs))
-
-(println "Hello\nWorld\nagain!")
+(displayln (q-describe-cntxs))
 
 ;; TODO list too many facts that are the same!
-(q-facts-with-subj-obj
+(define d1 (q-facts-with-subj-obj
  (q-cntx-names->dbid (list 'World) '())
  (q-name-dbid '$issue1)
- (q-name-dbid '$departmentX))
+ (q-name-dbid '$departmentX)))
+
+d1
+
+(map (curry fact-describe) d1)
