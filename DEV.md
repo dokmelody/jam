@@ -408,5 +408,11 @@ use instead something like
     (+ (name-deff dbid name (maybe name?))))
 ```
 
+### Datalog
+
+The strange API and syntax does not accept:
+* standard quasiquotation ``,somevar`` but ``#,somevar``
+* functions adding tuples to the db, but use directly the API
+
 
 

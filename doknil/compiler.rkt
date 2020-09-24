@@ -21,7 +21,8 @@
   ([count #:mutable] ; int
    to-name   ; int -> (name . (complement | #f))
    from-name ; (name . (complement | #f)) -> int
-   ))
+   )
+  #:transparent)
 
 (define dbids-empty-name 0)
 
@@ -30,98 +31,155 @@
     (dbids-id! r "" #f)
     r))
 
+(define (dbids-new-count! d)
+  (define r (dbids-count d))
+  (set-dbids-count! d (add1 r))
+  r)
+
+;; Get or create the dbid associated to the key.
+(define (dbids-key->id! dbids key)
+      (hash-ref
+         (dbids-from-name dbids)
+         key
+         (lambda ()
+           (define rid (dbids-new-count! dbids))
+           (hash-set! (dbids-from-name dbids) key rid)
+           (hash-set! (dbids-to-name dbids) rid key)
+           rid)))
+
+;; Get the key used for creating the id.
+(define (dbids->key dbids dbid)
+      (hash-ref
+         (dbids-to-name dbids)
+         dbid))
+
 ;; Get or create the dbid associated to the name and complement.
 ;; symbol | string -> symbol | string | #f -> int
 (define (dbids-id! dbids name complement)
-      (define complete-name (cons name complement))
-
-      (hash-ref
-         (dbids-from-name dbids)
-         complete-name
-         (lambda ()
-           (define rid (dbids-count dbids))
-           (hash-set! (dbids-from-name dbids) complete-name rid)
-           (hash-set! (dbids-to-name dbids) rid complete-name)
-           (set-dbids-count! dbids (+ 1 rid))
-           rid)))
+  (dbids-key->id! dbids (cons name complement)))
 
 (define (dbids-name dbids dbid)
   (hash-ref (dbids-to-name dbids) dbid (lambda () #f)))
 
-
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; cntxs
-
-;; Associate a unique id to a list of branches and groups.
-(struct cntxs
-  ([count #:mutable] ; integer
-   branches->>groups->>dbid        ; (list-names ...) -> (list names ...) -> dbid
-   )
-   #:transparent)
-
-(define cntxs-root-dbid 0)
-
-(define (make-cntxs)
-  (let* ([hs-group (make-hash (list (cons '() cntxs-root-dbid)))]
-         [hs-branch (make-hash (list (cons '() hs-group)))])
-    (cntxs 1 hs-branch)))
-
-(define (cntxs-new-count! cntxs)
-  (define r (cntxs-count cntxs))
-  (set-cntxs-count! cntxs (add1 r))
-  r
-)
-
-;; Extend with a unique id for every sequence of missing branch and group names.
-;; (list string|symbol) -> (list string|symbol)
-(define (cntxs-extend! cntxs branches groups)
-  (define hs (cntxs-branches->>groups->>dbid cntxs))
-  (define lb (length branches))
-  (define lg (length groups))
-
-  ; Create an empty group for every missing branch
-  (do ([i 1 (+ i 1)])
-       [(> i lb)]
-    (let ([p (take branches i)])
-      (when (not (hash-has-key? hs p))
-        (define inner-hs (make-hash (list (cons '() (cntxs-new-count! cntxs)))))
-        (hash-set! hs p inner-hs)))
-  )
-
-  ; Create a group for every missing group
-  (define hs2 (hash-ref hs branches))
-  (do ([i 1 (+ i 1)])
-       [(> i lg)]
-    (let ([p (take groups i)])
-      (when (not (hash-has-key? hs2 p))
-        (hash-set! hs2 p (cntxs-new-count! cntxs)))))
-)
-
-(define (cntxs-get-dbid cntxs branches groups)
-  (define hs (hash-ref (cntxs-branches->>groups->>dbid cntxs) branches))
-  (hash-ref hs groups)
-)
-
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Runtime env with result of incremental compilation.
 ;; New facts, names and rules are added to a global Doknil run-time environment.
 ;; In this way it is possible adding at run-time new facts and rules.
+;; Normalize cntxs as a branch and group expression, and store it inside ``doknil-dbids``.
 
 ;; NOTE: doknil defined in "doknil/runtime.rkt" is part of the environment.
 
 ;; The dbids used for (incremental) compilation of Doknil code to doknil run-time.
 (define doknil-dbids (make-dbids))
 
-;; The cntxs used for (incremental) compilation of Doknil code
-(define doknil-cntxs (make-cntxs))
-
 ;; Count the extensional (i.e. explicit) facts.
 (define count-facts (box 1))
 
 (define (count-facts-next!) (set-box! count-facts (add1 (unbox count-facts))))
 
-;; Add a fact the doknil env
-(define (doknil! fact) (datalog doknil-db (! fact)))
+(define (q-name dbid)
+     (cond
+      [(eq? dbid #f) #f]
+      [else (car (hash-ref (dbids-to-name doknil-dbids) dbid))]))
+
+(define (q-complement dbid)
+     (cond
+      [(eq? dbid #f) #f]
+      [else (cdr (hash-ref (dbids-to-name doknil-dbids) dbid))]))
+
+(define (q-name-dbid name)
+      (cond
+      [(eq? name #f) #f]
+      [else (hash-ref (dbids-from-name doknil-dbids) (cons name #f))]))
+
+(define (q-role-dbid name complement)
+      (cond
+      [(eq? name #f) #f]
+      [else (hash-ref (dbids-from-name doknil-dbids) (cons name complement))]))
+
+;; cntx like ``A/B/C.x.y.z`` can be represented in different ways:
+;; * a list of dbids for branches (i.e. ``A/B/C``) and groups (i.e. ``x.y.z``) where each dbid is a name
+;; * a unique dbid representing the unique branches and groups association
+
+;; Given a list of names (i.e. symbols),
+;; return a ``cntx-dbids branches groups``.
+(define (q-cntx-names->dbids branches groups)
+  (define (to-dbids! names)
+    (map (lambda (name) (dbids-id! doknil-dbids name #f)) names))
+
+  (let ([bs (to-dbids! branches)]
+        [gs (to-dbids! groups)])
+    `(cntx-dbids ,bs ,gs)))
+
+;; Given a ``cntx-dbids`` return a single compact dbid.
+;; Create also intermediate missing branch and groups.
+(define (doknil-cntx-dbids->dbid! cntx-dbids)
+  (match cntx-dbids
+    [(list 'cntx-dbids branch-dbids group-dbids)
+     (define lb (length branch-dbids))
+     (define lg (length group-dbids))
+
+     ; Create an empty group for every missing branch.
+     ; Use '() as index of the empty group of every branch.
+    (do ([i 0 (add1 i)])
+        [(> i lb)]
+      (let* ([p (take branch-dbids i)]
+             [bg `(cntx-dbids ,p ())])
+        (dbids-key->id! doknil-dbids bg)))
+
+    ; Create a group for every missing group of the specified branch
+    (do ([i 1 (add1 i)])
+        [(> i lg)]
+      (let* ([g (take group-dbids i)]
+             [bg `(cntx-dbids ,branch-dbids ,g)])
+            (dbids-key->id! doknil-dbids bg)))
+
+  ; Return the result
+  (dbids-key->id! doknil-dbids `(cntx-dbids ,branch-dbids ,group-dbids))]))
+
+(define (q-cntx-names->dbid branches groups)
+  (doknil-cntx-dbids->dbid! (q-cntx-names->dbids branches groups)))
+
+(define (q-cntx-dbid->dbids dbid)
+  (dbids->key doknil-dbids dbid))
+
+(define (q-cntx-dbids->dbid dbids)
+  (doknil-cntx-dbids->dbid! dbids))
+
+(define (q-root-cntx-dbid)
+  (q-cntx-dbids->dbid `(cntx-dbids () ())))
+
+(define (q-cntx-dbids->branch-names dbids)
+  (match dbids
+    ([list 'cntx-dbids bs gs]
+     (map (curry q-name) bs))))
+
+(define (q-cntx-dbids->group-names dbids)
+  (match dbids
+    ([list 'cntx-dbids bs gs]
+     (map (curry q-name) gs))))
+
+;; Return a string for representing the cntx, like "A/B/C.x.y.z"
+(define (q-cntx-dbid->complete-names dbid)
+  (define dbids (q-cntx-dbid->dbids dbid))
+
+  (string-append
+    (string-join (map (curry symbol->string) (q-cntx-dbids->branch-names dbids)) "/")
+    (string-join (map (curry symbol->string) (q-cntx-dbids->group-names dbids)) "." #:before-first ".")))
+
+;; Describe cntx info, for debug porpouse.
+(define (q-describe-cntxs)
+  (define (describe cntx dbid)
+    (match cntx
+      [(list 'cntx-dbids branch-dbids group-dbids)
+       (q-cntx-dbid->complete-names dbid)]
+
+      [else #f]))
+
+  (string-join
+    (filter (lambda (x) (not (eq? #f x)))
+          (hash-map (dbids-from-name doknil-dbids) (curry describe)))
+    "\n"))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
@@ -227,10 +285,10 @@
                          (stmt* ...))))
 
   (BranchDef (branch-def)
-             (+ (branch-deff branch-id (maybe parent-branch-id?) name-id)))
+             (+ (branch-deff branch-id (maybe parent-branch-id?))))
 
   (CntxDef (cntx-def)
-           (+ (cntx-deff cntx-id branch-id (maybe parent-cntx-id?) name-id)))
+           (+ (cntx-deff cntx-id branch-id (maybe parent-cntx-id?))))
 
   (CntxExplicitTree (cntx-explicit-tree)
                     (+ (cntx-include into-cntx-id from-cntx-id))
@@ -269,8 +327,9 @@
 
     (Cntx : Cntx (C) -> Cntx ()
           [(cntx-ref (,branch* ...) (,group* ...))
-           `(cntx-ref (,(map (lambda (x) (dbids-id! doknil-dbids x #f)) branch*))
-                      (,(map (lambda (x) (dbids-id! doknil-dbids x #f)) group*)))])
+           (let ([branch** (map (lambda (x) (dbids-id! doknil-dbids x #f)) branch*)]
+                 [group** (map (lambda (x) (dbids-id! doknil-dbids x #f)) group*)])
+           `(cntx-ref (,branch** ...) (,group** ...)))])
 
     (Stmt : Stmt (S) -> Stmt ()
          [(cntx-include ,[cntx])
@@ -304,7 +363,7 @@
                    (with-output-language (L2 RoleDef) `(role-children ,role ,is-part-of ,parent))
                    (map (lambda (x) (flat-RoleDef x role)) role-def*))]))
 
-;; Extract all the contexts used inside L2 and save them in doknil-cntxs
+;; Extract all the contexts used inside L2 and save them in doknil environment
 (define-pass L2->cntxs : L2 (kb) -> * (bool)
 
   (KB : KB (K) -> * (bool)
@@ -321,16 +380,27 @@
 
   (Cntx : Cntx (C) -> * (bool)
         [(cntx-ref (,branch* ...) (,group* ...))
-         (cntxs-extend! doknil-cntxs branch* group*)])
+         (doknil-cntx-dbids->dbid! `(cntx-dbids ,branch* ,group*))])
 
   ; main entry point
-  (KB kb))
+  (begin
+    ; create root cntx
+    (doknil-cntx-dbids->dbid! (q-cntx-names->dbids '() '()))
 
+    (KB kb)))
+
+; TODO reformat code
+; TODO check if groups must be set forward or backward.
+; TODO see in the documentation about the hierarchy order
+; TODO check also in the rules of the runtime
+
+; Compile L2 into L3 and update also the global env variable ``doknil-cntxs``.
 (define-pass L2->L3 : L2 (kb) -> L3 ()
   (definitions
 
     (define cntxs-include '())
     (define cntxs-exclude '())
+    (define found-cntx-dbid-set (mutable-set))
 
     (define (generate-cntxs-include)
       (map (lambda (x)
@@ -342,56 +412,79 @@
              (with-output-language (L3 CntxExplicitTree)
                `(cntx-exclude ,(car x) ,(cdr x)))) cntxs-exclude))
 
-    (define (cntxs->BranchDef branch)
-      (let* ([branch-id (cntxs-get-dbid doknil-cntxs branch '())]
+    (define (cntxs-generate-all-group-defs)
+      (define generated-dbids (mutable-set))
 
-             [parent-id (cond [(empty? branch) #f]
-                              [else (cntxs-get-dbid doknil-cntxs (drop-right branch 1) '() )])]
+      (define (generate-group-defs branch-dbid branch-dbids group-dbids)
+        (define cntx-dbid (q-cntx-dbids->dbid `(cntx-dbids ,branch-dbids ,group-dbids)))
 
-             [name (cond [(empty? branch) dbids-empty-name]
-                         [else (last branch)])]
+          (cond [(set-member? generated-dbids cntx-dbid)
+                 ; NOTE: if a dbid is generated, then also its parent hierarchy is generated,
+                 ; so if I don't reach this point, I will not miss anythyng.
+                 #f]
 
-             )
-        (with-output-language (L3 BranchDef)
-          `(branch-deff ,branch-id ,parent-id ,name))))
+                [else
+                (set-add! generated-dbids cntx-dbid)
+                (cond
+                  [(empty? group-dbids)
+                   (cons
+                   (with-output-language (L3 CntxDef)
+                     `(cntx-deff ,cntx-dbid ,branch-dbid #f)) '())]
+                  [else (let* ([parent-dbids (drop-right group-dbids 1)]
+                              [parent-dbid (q-cntx-dbids->dbid `(cntx-dbids ,branch-dbids ,parent-dbids))])
+                          (cons
+                   (with-output-language (L3 CntxDef)
+                     `(cntx-deff ,cntx-dbid ,branch-dbid ,parent-dbid))
+                                (generate-group-defs branch-dbid branch-dbids parent-dbids)))])]))
 
-    (define (cntxs->CntxDefs branch group)
-      (let* ([branch-id (cntxs-get-dbid doknil-cntxs branch '())]
+      (define cntxs (set-map found-cntx-dbid-set (curry dbids->key doknil-dbids)))
 
-             [group-id (cntxs-get-dbid doknil-cntxs branch group)]
 
-             [parent-id (cond [(empty? group) #f]
-                              [else (cntxs-get-dbid doknil-cntxs branch (drop-right group 1))])]
+      (filter (lambda (x) (not (eq? x #f)))
+              (flatten (map (lambda (bsgs)
+                              (match bsgs
+                                     ([list 'cntx-dbids bs gs]
+                                      (let* ([branch-dbid (q-cntx-dbids->dbid `(cntx-dbids ,bs ()))])
+                                        (generate-group-defs branch-dbid bs gs)))))
+                            cntxs))))
 
-             [name (cond [(empty? group) dbids-empty-name]
-                         [else (last group)])]
+    (define (cntxs-generate-all-branch-defs)
+      (define generated-dbids (mutable-set))
 
-             )
-        (with-output-language (L3 CntxDef)
-          `(cntx-deff ,group-id ,branch-id ,parent-id ,name))))
+      (define (generate-branch-defs branch-dbids)
+        (define branch-id (q-cntx-dbids->dbid `(cntx-dbids ,branch-dbids ())))
+        (cond
+           [(set-member? generated-dbids branch-id)
+             ; NOTE: if a dbid is generated, then also its parent hierarchy is generated,
+             ; so if I don't reach this point, I will not miss anythyng.
+             #f]
+           [else
+                  (set-add! generated-dbids branch-id)
+                  (cond
+                    [(empty? branch-dbids)
+                      (cons (with-output-language (L3 BranchDef)
+                             `(branch-deff ,branch-id #f)) '())]
+                    [else (let* ([parent-dbids (drop-right branch-dbids 1)]
+                                 [parent-id (q-cntx-dbids->dbid `(cntx-dbids ,parent-dbids ()))])
+                                 (cons (with-output-language (L3 BranchDef)
+                                   `(branch-deff ,branch-id ,parent-id))
+                                    (generate-branch-defs parent-dbids)))])]))
 
-    (define (cntxs-generate-all-groups branch)
-      (let* ([groups (hash-ref (cntxs-branches->>groups->>dbid doknil-cntxs) branch)]
-             [cntxs (map (lambda (group) (cntxs->CntxDefs branch group)) (hash-keys groups))])
-         cntxs
-         ))
+      ; Extract unique branches as dbids
+      (let* ([cntxs (set-map found-cntx-dbid-set (curry q-cntx-dbid->dbids))]
+             [bss (map (lambda (bsgs) (match bsgs [(list 'cntx-dbids bs gs) bs])) cntxs)]
+             [bs (list->set bss)])
 
-    (define (cntxs-generate-all-all-groups)
-      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid doknil-cntxs))]
-             [r (map (lambda (branch) (cntxs-generate-all-groups branch)) branches)])
-         r
-         ))
+        (filter (lambda (x) (not (eq? x #f)))
+                (flatten (set-map bs (curry generate-branch-defs))))))
 
-    (define (cntxs-generate-all-branches)
-      (let* ([branches (hash-keys (cntxs-branches->>groups->>dbid doknil-cntxs))])
-        (map (lambda (branch) (cntxs->BranchDef branch)) branches)))
-  )
+    )
 
   (KB : KB (K) -> KB ()
         [(knowledge-base (,[role-def*] ...) (,stmt* ...))
-         (let* ([stmt** (flatten (map (lambda (x) (Stmt x cntxs-root-dbid)) stmt*))]
-                [branch-def** (flatten (cntxs-generate-all-branches))]
-                [cntx-def** (flatten (cntxs-generate-all-all-groups))]
+         (let* ([stmt** (flatten (map (lambda (x) (Stmt x (q-root-cntx-dbid))) stmt*))]
+                [branch-def** (cntxs-generate-all-branch-defs)]
+                [cntx-def** (cntxs-generate-all-group-defs)]
                 [explicit-includes** (generate-cntxs-include)]
                 [explicit-includes** (generate-cntxs-exclude)]
                 [explicit-cntxs** (append (generate-cntxs-include) (generate-cntxs-exclude))]
@@ -430,7 +523,9 @@
 
   (to-cntx-id : Cntx (C) -> * (dbid)
               [(cntx-ref (,branch* ...) (,group* ...))
-               (cntxs-get-dbid doknil-cntxs branch* group*)])
+               (let ([dbid (doknil-cntx-dbids->dbid! `(cntx-dbids ,branch* ,group*))])
+                 (set-add! found-cntx-dbid-set dbid)
+                 dbid)])
 
   ;; Main entry point
   (begin
@@ -453,36 +548,36 @@
 
   (RoleDef : RoleDef (rd) -> * (bool)
            [(role-children ,role ,is-part-of ,parent-role?)
-            (doknil! `(role ,role ,is-part-of ,parent-role?))
+            (datalog doknil-db  (! (role #,role #,is-part-of #,parent-role?)))
             ])
 
   (BranchDef : BranchDef (bd) -> * (bool)
-             [(branch-deff ,branch-id ,parent-branch-id? ,name-id)
-              (doknil! `(branch ,branch-id ,parent-branch-id?))
+             [(branch-deff ,branch-id ,parent-branch-id?)
+              (datalog doknil-db  (! (branch #,branch-id #,parent-branch-id?)))
              ])
 
   (CntxDef : CntxDef (cd) -> * (bool)
-           [(cntx-deff ,cntx-id ,branch-id ,parent-cntx-id? ,name-id)
-            (doknil! `(cntx ,cntx-id ,branch-id ,parent-cntx-id?))
+           [(cntx-deff ,cntx-id ,branch-id ,parent-cntx-id?)
+            (datalog doknil-db  (! (cntx #,cntx-id #,branch-id #,parent-cntx-id?)))
             ])
 
   (CntxExplicitTree : CntxExplicitTree (et) -> * (bool)
                     [(cntx-include ,into-cntx-id ,from-cntx-id)
-                     (doknil! `(include-cntx ,into-cntx-id ,from-cntx-id))
+                     (datalog doknil-db  (! (include-cntx #,into-cntx-id #,from-cntx-id)))
                      ]
                     [(cntx-exclude ,into-cntx-id ,from-cntx-id)
-                     (doknil! `(exclude-cntx ,into-cntx-id ,from-cntx-id))
+                     (datalog doknil-db  (! (exclude-cntx #,into-cntx-id #,from-cntx-id)))
                      ]
                     )
 
   (Stmt : Stmt (s) -> * (bool)
         [(isa ,cntx-id ,subj ,role ,obj)
-         (doknil! `(isa ,count-facts ,cntx-id ,subj ,role ,obj))
+         (datalog doknil-db  (! (isa-fact #,(unbox count-facts) #,cntx-id #,subj #,role #,obj)))
          (count-facts-next!)
          ]
 
         [(is ,cntx-id ,subj ,role)
-         (doknil! `(is ,count-facts ,cntx-id ,subj ,role))
+         (datalog doknil-db  (! (isa-fact #,(unbox count-facts) #,cntx-id #,subj #,role #f)))
          (count-facts-next!)
          ]
         )
@@ -516,6 +611,7 @@
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
 ;; TODO update tests using the compiler API
+;; TODO do not assign correctly "part-of" boolean value to relations
 
 ;; DONE up to date for simplyfing life, I use an hash map mapping from variable name to value, so the code is a mix between
 ;; this decision and my decision
@@ -523,8 +619,77 @@
 
 ;; TODO convert back to names and not to ids
 ;; TODO find a good API to use: it should ask only to Doknil run-time and it must use the dbids only for name conversion
-;; (define (q-derived-roles ))
 
+; TODO implement these
+; TODO use this API in the doknil tests
+
+(struct role-def
+  (id
+   parent-id?
+   name
+   complement
+   is-part-of?)
+  #:transparent)
+
+(struct fact
+  (id
+   cntx-id
+   subject-id
+   role-id
+   object-id?
+   )
+  #:transparent)
+
+
+(define (fact-role-def f)
+ (~> f fact-role-id q-role-def))
+
+(define (fact-subject f)
+  (q-name (fact-subject-id f)))
+
+(define (fact-object f)
+  (q-name (fact-object-id? f)))
+
+(define (q-fact fact-id)
+  (let ([d (first (datalog doknil-db (? (isa-fact #,fact-id CNTX SUBJ ROLE OBJ))))])
+    (fact fact-id (hash-ref d 'CNTX) (hash-ref d 'SUBJ) (hash-ref d 'ROLE) (hash-ref d 'OBJ))
+  ))
+
+(define (q-role-def role-id)
+   (let ([d (first (datalog doknil-db (? (role #,role-id IS-PART-OF PARENT-ID))))])
+        (role-def role-id
+                  (hash-ref d 'PARENT-ID)
+                  (q-name role-id)
+                  (q-complement role-id)
+                  (hash-ref d 'IS-PART-OF))))
+
+(define (q-role-defs role-id)
+  (let* ([d (q-role-def role-id)]
+         [pid (role-def-parent-id? d)])
+    (cons d (cond
+              [(eq? #f pid) '()]
+              [else (q-role-defs pid)]))))
+
+; TODO extract also info about cntx
+;; TODO implement
+(define (q-child-cntxs fact-id) #f)
+
+(define (q-facts-with-subj-obj cntx-id subj-id obj-id)
+  (let ([ds (datalog doknil-db (? (isa BRANCH #,subj-id ROLE IS-PART-OF #,obj-id #,cntx-id FACT)))])
+    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)
+    ))
+
+;; TODO implement
+(define (q-facts-with-subj cntx-id subj-id) #f)
+
+;; TODO implement
+(define (q-facts-with-obj cntx-id obj-id) #f)
+
+;; TODO implement
+(define (q-facts-with-subj-role cntx-id subj-id role-id) #f)
+
+;; TODO implement
+(define (q-facts-with-obj-role cntx-id obj-id role-id) #f)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -835,3 +1000,25 @@ DOKNIL-SRC
     L2->L3
     L3->doknil-db)
 
+(q-fact 1)
+(fact-subject (q-fact 1))
+(fact-object (q-fact 1))
+
+(q-role-def (q-role-dbid 'issue 'of))
+(q-role-defs (q-role-dbid 'issue 'of))
+
+doknil-dbids
+
+(q-cntx-dbid->dbids 24)
+(q-cntx-dbids->branch-names (q-cntx-dbid->dbids 24))
+
+;; TODO not formatted in the correct way
+(println (q-describe-cntxs))
+
+(println "Hello\nWorld\nagain!")
+
+;; TODO list too many facts that are the same!
+(q-facts-with-subj-obj
+ (q-cntx-names->dbid (list 'World) '())
+ (q-name-dbid '$issue1)
+ (q-name-dbid '$departmentX))
