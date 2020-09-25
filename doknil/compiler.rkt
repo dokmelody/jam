@@ -183,8 +183,6 @@
           (hash-map (dbids-from-name doknil-dbids) (curry describe)))
     "\n"))
 
-
-
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Nanopass languages
 
@@ -393,7 +391,6 @@
 
     (KB kb)))
 
-; TODO reformat code
 ; TODO check if groups must be set forward or backward.
 ; TODO see in the documentation about the hierarchy order
 ; TODO check also in the rules of the runtime
@@ -436,9 +433,9 @@
                      `(cntx-deff ,cntx-dbid ,branch-dbid #f)) '())]
                   [else (let* ([parent-dbids (drop-right group-dbids 1)]
                               [parent-dbid (q-cntx-dbids->dbid `(cntx-dbids ,branch-dbids ,parent-dbids))])
-                          (cons
-                   (with-output-language (L3 CntxDef)
-                     `(cntx-deff ,cntx-dbid ,branch-dbid ,parent-dbid))
+                              (cons
+                                (with-output-language (L3 CntxDef)
+                                   `(cntx-deff ,cntx-dbid ,branch-dbid ,parent-dbid))
                                 (generate-group-defs branch-dbid branch-dbids parent-dbids)))])]))
 
       (define cntxs (set-map found-cntx-dbid-set (curry dbids->key doknil-dbids)))
@@ -449,7 +446,7 @@
                               (match bsgs
                                      ([list 'cntx-dbids bs gs]
                                       (let* ([branch-dbid (q-cntx-dbids->dbid `(cntx-dbids ,bs ()))])
-                                        (generate-group-defs branch-dbid bs gs)))))
+                                            (generate-group-defs branch-dbid bs gs)))))
                             cntxs))))
 
     (define (cntxs-generate-all-branch-defs)
@@ -471,8 +468,8 @@
                     [else (let* ([parent-dbids (drop-right branch-dbids 1)]
                                  [parent-id (q-cntx-dbids->dbid `(cntx-dbids ,parent-dbids ()))])
                                  (cons (with-output-language (L3 BranchDef)
-                                   `(branch-deff ,branch-id ,parent-id))
-                                    (generate-branch-defs parent-dbids)))])]))
+                                         `(branch-deff ,branch-id ,parent-id))
+                                       (generate-branch-defs parent-dbids)))])]))
 
       ; Extract unique branches as dbids
       (let* ([cntxs (set-map found-cntx-dbid-set (curry q-cntx-dbid->dbids))]
@@ -621,9 +618,6 @@
 ;; this decision and my decision
 ;; FACT I switch to language axe that has a more friendly dict navigation and it is good enough up to date
 
-;; TODO convert back to names and not to ids
-;; TODO find a good API to use: it should ask only to Doknil run-time and it must use the dbids only for name conversion
-
 ; TODO implement these
 ; TODO use this API in the doknil tests
 
@@ -643,7 +637,6 @@
    object-id?
    )
   #:transparent)
-
 
 (define (fact-role-def f)
  (~> f fact-role-id q-role-def))
@@ -704,18 +697,21 @@
     (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)
     ))
 
-;; TODO implement
-(define (q-facts-with-subj cntx-id subj-id) #f)
+(define (q-facts-with-subj cntx-id subj-id)
+  (let ([ds (datalog doknil-db (? (isa BRANCH #,subj-id ROLE IS-PART-OF OBJ #,cntx-id FACT)))])
+    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
-;; TODO implement
-(define (q-facts-with-obj cntx-id obj-id) #f)
+(define (q-facts-with-obj cntx-id obj-id)
+  (let ([ds (datalog doknil-db (? (isa BRANCH SUBJ ROLE IS-PART-OF #,obj-id #,cntx-id FACT)))])
+    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
-;; TODO implement
-(define (q-facts-with-subj-role cntx-id subj-id role-id) #f)
+(define (q-facts-with-subj-role cntx-id subj-id role-id)
+  (let ([ds (datalog doknil-db (? (isa BRANCH #,subj-id #,role-id IS-PART-OF OBJ #,cntx-id FACT)))])
+    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
-;; TODO implement
-(define (q-facts-with-obj-role cntx-id obj-id role-id) #f)
-
+(define (q-facts-with-obj-role cntx-id obj-id role-id)
+  (let ([ds (datalog doknil-db (? (isa BRANCH SUBJ #,role-id IS-PART-OF #,obj-id #,cntx-id FACT)))])
+    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
