@@ -19,6 +19,7 @@
                "scribble-lib"
                "threading-lib"
                "axe"
+               "debug"
                "rackunit"))
 
 (define test-include-paths '("tests"))

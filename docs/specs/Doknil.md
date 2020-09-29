@@ -76,7 +76,7 @@ Parts are important because in Doknil a fact of a part is also a fact for the ow
 
 ### Attributes vs links
 
-A link (i.e. a relationships in graph-databases) connects two instances/cards using the( Doknil semantic and derivation rules. In Doknil a link is always a relationship between an ``instance`` and another ``owner`` instance (that can be also ``root`` if not specified)according a specific ``role``.
+A link (i.e. a relationships in graph-databases) connects two instances/cards using the Doknil semantic and derivation rules. In Doknil a link is always a relationship between an ``instance`` and another ``owner`` instance (that can be also ``root`` if not specified)according a specific ``role``.
 
 An attribute (i.e. a property in graph-database) is a named property of an instance containing usually a value, but also a reference to another instance.
 
@@ -108,13 +108,11 @@ World -->
 
 So in ``World/LordOfTheRings`` context ``Mars`` is a planet, and ``$gondor`` isa city, but in ``World/Asimov/FoundationSeries`` ``$gondor`` is not a city because ``World/LordOfTheRings`` is not one of its parents.
 
-### Group contexts
+### Groups of facts
 
-A set of facts inside a context can be grouped inside a common group (i.e. a certain domain of discourse), that can be later negated in another branch context. 
+A set of facts inside a context can be grouped inside a common group (i.e. a certain domain of discourse), that can be later included in another context, or excluded in a child context.
 
-A group context does not change the semantic of fact derivations in other contexts, because it does not change context hierarchy. Facts can be always refactored and grouped in a new group context without changing the semantic of other already specified contexts. This is intentional and useful for branching contexts.
-
-Group contexts can form an hierarchy.
+A group context does not change the semantic of fact derivations in contexts of the same hierarchy, so facts can be freely refactored in different groups without changing the semantic of the knowledge-base.
 
 A full context is formed by a context hierarchy followed by an optional group context hierarchy. Something like ``c1/c2/c3.g1.g2.g3``. 
 
@@ -159,39 +157,14 @@ World/ThesisOnTolkien --> {
 }
 ```
 
-Also in this case if one see that some group of facts can be reused, he can freely refactor the source context adding a group (because the semantic of the source context will not change), and then import the facts in the target context.
+### Context semantic
 
-### Context include vs exclude 
-
-``!include`` specifies a context on a distinct path, because parent context are included by default (i.e. a fact of parent context is also a fact of a child context).
-
-``!exclude`` specifies a parent context, because non parent context are excluded by default, and don't need it.
-
-So the contexts specified in ``!include`` and ``!exclude`` are always distinct.
-
-### Context include and exclude affect the entire new defined context
-
-Given something like
-
-```
-World/SomeNewContext.someGroup --> { 
-  !include SomeExternalContext.someGroup
-  !exclude World.places
-
-  $someSubect isa someRole for $someObject
-} 
-```
-
-the ``!include`` and ``!exclude`` will work on entire ``SomeNewContext`` and not only ``SomeNewContext.someGroup``, because every group of ``SomeNewContext`` is affected by the defined facts.
-
-The ``SomeNewContext.someGroup`` is used only for adding new facts into ``someGroup``group.
-
-### Context information propagation
-
+* ``!exclude`` specifies a parent context, because non parent context are excluded by default, and don't need it.
+* ``!include`` specifies a context on a distinct path, because parent context are included by default (i.e. a fact of parent context is also a fact of a child context).
 * Facts inside a parent context are also facts of the child context (e.g. ``c1`` facts are also facts of ``c1/c2``).
 * Facts of a parent group context are also facts of a child group context (e.g. ``c1.g1`` facts are also facts of ``c1.g1.g2``).
-* If a target context include/exclude facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included/excluded.
-* If a target context include/exclude facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included/excluded, while there is no effect on distinct source contexts like ``c1/c2`` and ``c1.g3``.
+* If a target context include (or exclude) facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included (or excluded).
+* If a target context include (or exclude) facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included (or excluded), while there is no effect on distinct source contexts like ``c1/c2`` and ``c1.g3``.
 
 ### Negation
 

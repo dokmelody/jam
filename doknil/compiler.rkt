@@ -1,7 +1,7 @@
 ;; SPDX-License-Identifier: MIT
 ;; Copyright (C) 2020 Massimo Zaniboni <mzan@dokmelody.org>
 
-#lang racket
+#lang debug racket
 
 (require racket/base
          racket/trace
@@ -11,6 +11,24 @@
          "lexer.rkt"
          "grammar.rkt"
          "runtime.rkt")
+
+;; TODO remove ``debug`` in the language section at the end
+;; TODO replace World cntx with implicit null cntx
+;; TODO rewrite regression tests for using the API
+;; TODO add tests about consistency of the DB analyzing the Doknil source code
+;; TODO use a defalt NULL/nil value for some of the specified relations
+;; TODO store in a data structure apart the associations between ids and complete hierarchy name
+;; TODO use this same structure for lookup during parsing
+;; TODO the same for roles, and all other Doknil elements
+;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
+;; TODO make sure to register also roles without a parent
+;; TODO it is important showing explicitely overriden contexts
+;; TODO in queries one can only specify branches without groups
+;; TODO check that cntx itself is returned, and so no facts are left behind
+;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
+;; TODO update tests using the compiler API
+;; TODO do not assign correctly "part-of" boolean value to relations
+;; TODO the group visibility semantic is the inverse of branch rules. Test this is respected
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; dbids
@@ -87,7 +105,7 @@
       [(eq? dbid #f) #f]
       [else (cdr (hash-ref (dbids-to-name doknil-dbids) dbid))]))
 
-(define (q-name-dbid name)
+(define (q-name->dbid name)
       (cond
       [(eq? name #f) #f]
       [else (hash-ref (dbids-from-name doknil-dbids) (cons name #f))]))
@@ -140,6 +158,9 @@
 (define (q-cntx-names->dbid branches groups)
   (doknil-cntx-dbids->dbid! (q-cntx-names->dbids branches groups)))
 
+(define (q-branch-names->dbid branches)
+  (q-cntx-names->dbid branches '()))
+
 (define (q-cntx-dbid->dbids dbid)
   (dbids->key doknil-dbids dbid))
 
@@ -161,13 +182,19 @@
 
 ;; Return a string for representing the cntx, like "A/B/C.x.y.z"
 (define (q-cntx-dbid->complete-names dbid)
-  (let* ([dbids (q-cntx-dbid->dbids dbid)]
-         [b-names (q-cntx-dbids->branch-names dbids)]
-         [g-names (q-cntx-dbids->group-names dbids)]
-         [b-part (string-join (map (curry symbol->string) b-names) "/")]
-         [g-part (cond [(empty? g-names) ""]
-                       [else (string-join (map (curry symbol->string) g-names) ".")])])
-  (string-append b-part g-part)))
+  (cond
+    [(eq? dbid #f) "#f"]
+    [else
+       (let* ([dbids (q-cntx-dbid->dbids dbid)]
+              [b-names (q-cntx-dbids->branch-names dbids)]
+              [g-names (q-cntx-dbids->group-names dbids)]
+              [b-part (string-join (map (curry symbol->string) b-names) "/")]
+              [g-part (cond [(empty? g-names) ""]
+                            [else (string-join
+                                   (map (curry symbol->string) g-names)
+                                   "."
+                                   #:before-first ".")])])
+              (string-append b-part g-part))]))
 
 ;; Describe cntx info, for debug porpouse.
 (define (q-describe-cntxs)
@@ -391,9 +418,6 @@
 
     (KB kb)))
 
-; TODO check if groups must be set forward or backward.
-; TODO see in the documentation about the hierarchy order
-; TODO check also in the rules of the runtime
 
 ; Compile L2 into L3 and update also the global env variable ``doknil-cntxs``.
 (define-pass L2->L3 : L2 (kb) -> L3 ()
@@ -595,31 +619,6 @@
 ;; Lisp interface is used. No special query language is implemented
 ;; right now.
 
-;; TODO use one type of query where the query result is filtered deriving only more specific role and context
-;; TODO rewrite regression tests for using the API
-;; TODO add tests about consistency of the DB analyzing the Doknil source code
-;; TODO contexts must be added to the DB according their effective usage because every new hierarchy is a new id,
-;; or use instead an hash map of the complete hiearchy
-;;
-;; TODO use a defalt NULL/nil value for some of the specified relations
-;; TODO store in a data structure apart the associations between ids and complete hierarchy name
-;; TODO use this same structure for lookup during parsing
-;; TODO the same for roles, and all other Doknil elements
-;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
-;; TODO make sure to register also roles without a parent
-;; TODO it is important showing explicitely overriden contexts
-;; TODO in queries one can only specify branches without groups
-;; TODO check that cntx itself is returned, and so no facts are left behind
-;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
-;; TODO update tests using the compiler API
-;; TODO do not assign correctly "part-of" boolean value to relations
-
-;; DONE up to date for simplyfing life, I use an hash map mapping from variable name to value, so the code is a mix between
-;; this decision and my decision
-;; FACT I switch to language axe that has a more friendly dict navigation and it is good enough up to date
-
-; TODO implement these
-; TODO use this API in the doknil tests
 
 (struct role-def
   (id
@@ -664,6 +663,7 @@
    (cond
      [(eq? (fact-object-id? fact) #f) ""]
      [else (string-append
+            " "
             (symbol->string (role-def-complement rd))
             " "
             (symbol->string (q-name (fact-object-id? fact)))
@@ -688,30 +688,143 @@
               [(eq? #f pid) '()]
               [else (q-role-defs pid)]))))
 
-; TODO extract also info about cntx
-;; TODO implement
-(define (q-child-cntxs fact-id) #f)
 
-(define (q-facts-with-subj-obj cntx-id subj-id obj-id)
-  (let ([ds (datalog doknil-db (? (isa BRANCH #,subj-id ROLE IS-PART-OF #,obj-id #,cntx-id FACT)))])
+(define (q-facts-with-subj-obj branch-id subj-id obj-id)
+  (let ([ds (datalog doknil-db (? (isa #,branch-id #,subj-id ROLE IS-PART-OF #,obj-id CNTX FACT)))])
     (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)
     ))
 
-(define (q-facts-with-subj cntx-id subj-id)
-  (let ([ds (datalog doknil-db (? (isa BRANCH #,subj-id ROLE IS-PART-OF OBJ #,cntx-id FACT)))])
+(define (q-facts-with-subj branch-id subj-id)
+  (let ([ds (datalog doknil-db (? (isa #,branch-id #,subj-id ROLE IS-PART-OF OBJ CNTX FACT)))])
     (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
-(define (q-facts-with-obj cntx-id obj-id)
-  (let ([ds (datalog doknil-db (? (isa BRANCH SUBJ ROLE IS-PART-OF #,obj-id #,cntx-id FACT)))])
+(define (q-facts-with-obj branch-id obj-id)
+  (let ([ds (datalog doknil-db (? (isa #,branch-id SUBJ ROLE IS-PART-OF #,obj-id CNTX FACT)))])
     (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
-(define (q-facts-with-subj-role cntx-id subj-id role-id)
-  (let ([ds (datalog doknil-db (? (isa BRANCH #,subj-id #,role-id IS-PART-OF OBJ #,cntx-id FACT)))])
+(define (q-facts-with-subj-role branch-id subj-id role-id)
+  (let ([ds (datalog doknil-db (? (isa #,branch-id #,subj-id #,role-id IS-PART-OF OBJ CNTX FACT)))])
     (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
 
-(define (q-facts-with-obj-role cntx-id obj-id role-id)
-  (let ([ds (datalog doknil-db (? (isa BRANCH SUBJ #,role-id IS-PART-OF #,obj-id #,cntx-id FACT)))])
+(define (q-facts-with-obj-role branch-id obj-id role-id)
+  (let ([ds (datalog doknil-db (? (isa #,branch-id SUBJ #,role-id IS-PART-OF #,obj-id CNTX FACT)))])
     (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
+
+;; Return cntxs excluded from this branch,
+;; or one of its accessible parent branches.
+;; This query can be used for seeing the direct and indirect differences
+;; between this branch and parent branches.
+(define (q-all-excluded-cntxs branch-id)
+  (let ([ds (datalog doknil-db (? (all-branch-exclude-cntx #,branch-id CNTX)))])
+    (map (lambda (d) (hash-ref d 'CNTX)) ds)))
+
+;; Return cntxs excluded directly from this branch.
+;; This query can be used for seeing if a branch directly differs from
+;; parent branches.
+(define (q-specific-excluded-cntxs branch-id)
+  (let ([ds (datalog doknil-db (? (branch-exclude-cntx #,branch-id CNTX)))])
+    (map (lambda (d) (hash-ref d 'CNTX)) ds)))
+
+;; Return the most specific cntxs included (i.e. resused) from this branch,
+;; without considering branch parents.
+;; This query can be used for inspecting the definitions of branches,
+;; and how information is factored and reused.
+(define (q-included-cntxs branch-id)
+  (let ([ds (datalog doknil-db (? (branch-include-cntx #,branch-id CNTX)))])
+    (map (lambda (d) (hash-ref d 'CNTX)) ds)))
+
+;; Return the most specific cntxs that are including (i.e. resusing) explicitely this cntx.
+;; This query can be used for inspecting the definitions of branches,
+;; and how information is factored and reused.
+(define (q-included-in-cntxs cntx-id)
+  (let ([ds (datalog doknil-db (? (include-cntx DST-CNTX #,cntx-id)))])
+    (map (lambda (d) (hash-ref d 'DST-CNTX)) ds)))
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Doknil DB Debug API
+
+(define (db-inspect-role->str role-id obj)
+  (define rd (q-role-def role-id))
+
+  (string-append
+   (symbol->string (role-def-name rd))
+   (cond
+     [(eq? obj #f) ""]
+     [else (string-append
+            " "
+            (symbol->string (role-def-complement rd))
+            " "
+            (symbol->string (q-name obj)))])))
+
+(define (db-inspect-isa subj-id)
+  (let* ([ds (datalog doknil-db (? (isa BRANCH #,subj-id ROLE IS-PART-OF OBJ CNTX FACT)))])
+
+    (map (lambda (d)
+           (string-join
+            `("isa"
+             ,(q-cntx-dbid->complete-names (hash-ref d 'BRANCH))
+             ,(symbol->string (q-name subj-id))
+             ,(db-inspect-role->str (hash-ref d 'ROLE) (hash-ref d 'OBJ))
+             ,(q-cntx-dbid->complete-names (hash-ref d 'CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-cntx-rec1 branch-id)
+  (let* ([ds (datalog doknil-db (? (cntx-rec1 #,branch-id PARENT-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("cntx-rec1"
+             ,(q-cntx-dbid->complete-names branch-id)
+             ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-cntx cntx-id)
+  (let* ([ds (datalog doknil-db (? (cntx #,cntx-id BRANCH PARENT-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("cntx"
+              ,(q-cntx-dbid->complete-names cntx-id)
+              ,(q-cntx-dbid->complete-names (hash-ref d 'BRANCH))
+              ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-cntx-all)
+  (let* ([ds (datalog doknil-db (? (cntx CNTX BRANCH PARENT-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("cntx"
+              ,(q-cntx-dbid->complete-names (hash-ref d 'CNTX))
+              ,(q-cntx-dbid->complete-names (hash-ref d 'BRANCH))
+              ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-include-cntx)
+  (let* ([ds (datalog doknil-db (? (include-cntx DST-CNTX SRC-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("include-cntx"
+              ,(q-cntx-dbid->complete-names (hash-ref d 'DST-CNTX))
+              ,(q-cntx-dbid->complete-names (hash-ref d 'SRC-CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-exclude-cntx)
+  (let* ([ds (datalog doknil-db (? (exclude-cntx DST-CNTX SRC-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("exclude-cntx"
+              ,(q-cntx-dbid->complete-names (hash-ref d 'DST-CNTX))
+              ,(q-cntx-dbid->complete-names (hash-ref d 'SRC-CNTX))
+             "\n"
+             ) " ")) ds)))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser: read the text and produce a syntax tree in L0
@@ -937,56 +1050,23 @@ World/Earth/Tolkien.places --> {
   $gondor isa city of $middleEarth
 }
 
+# Play with cntx inclusion
+
+
+World/T.a --> {
+  $akme isa company
+  $k1 isa department of $akme
+}
+
+World/S.a --> {
+  !include World/T.a
+
+  $k2 isa department of $k1
+}
+
 DOKNIL-SRC
 )
 
-;; TODO the usefull queries are probably very fews and I can use only a Lisp API instead of creating a distinct PL
-
-;; TODO support queries like this
-#|
-# Queries
-
-!query, /World/?Cntx --> {
-    @Fact(?$fact1), $issue1 isa issue of ?$obj
-    !check, ?$fact1.role == issue
-
-    !check {
-      ?$fact1.role.complement == of
-      ?$fact1.obj == ?$obj
-    }
-
-    !check, ?$fact1 {
-      ~.role == issue
-      ~.role.complement == of
-    }
-
-    !check, ?$fact1 {
-      ~.role {
-        ~ == issue
-        ~.complement == of
-        ~~.obj == ?$obj
-      }
-    }
-}
-
-!query {
-  /World/?Cntx --> {
-    $issue1 isa task of ?$obj
-  }
-}
-
-!query {
-  /World/Earth --> {
-    @Fact(?fact3), ?$city isa city of ?$obj
-  }
-}
-
-!query {
-  /World/Earth/Tolkien --> {
-    @Fact(?fact4), ?$city isa city of ?$obj
-  }
-}
-|#
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug
@@ -1022,26 +1102,67 @@ DOKNIL-SRC
     L2->L3
     L3->doknil-db)
 
+
+(displayln "Display fact")
 (q-fact 1)
 (fact-subject (q-fact 1))
 (fact-object (q-fact 1))
 
+
+(displayln "Display roles")
 (q-role-def (q-role-dbid 'issue 'of))
 (q-role-defs (q-role-dbid 'issue 'of))
 
+(displayln "Compiled DBIDS")
 doknil-dbids
 
-(q-cntx-dbid->dbids 24)
-(q-cntx-dbids->branch-names (q-cntx-dbid->dbids 24))
-
+(displayln "Compiled CNTXS")
 (displayln (q-describe-cntxs))
 
+(displayln "Compiled facts")
 ;; TODO list too many facts that are the same!
 (define d1 (q-facts-with-subj-obj
  (q-cntx-names->dbid (list 'World) '())
- (q-name-dbid '$issue1)
- (q-name-dbid '$departmentX)))
+ (q-name->dbid '$issue1)
+ (q-name->dbid '$departmentX)))
 
 d1
 
 (map (curry fact-describe) d1)
+
+(displayln "Test cntxs API 1")
+
+(map (curry fact-describe)
+     (q-facts-with-subj
+       (q-branch-names->dbid (list 'World 'T))
+       (q-name->dbid '$k1)))
+
+(map (curry fact-describe)
+     (q-facts-with-subj
+       (q-branch-names->dbid (list 'World 'S))
+       (q-name->dbid '$k1)))
+
+(displayln "Test cntxs API 2")
+
+(map (curry q-cntx-dbid->complete-names)
+  (q-included-in-cntxs (q-cntx-names->dbid '(World T) '(a))))
+
+(map (curry q-cntx-dbid->complete-names)
+  (q-included-cntxs (q-branch-names->dbid '(World S))))
+
+(map (curry q-cntx-dbid->complete-names)
+  (q-all-excluded-cntxs (q-branch-names->dbid '(World Earth Tolkien))))
+
+(map (curry q-cntx-dbid->complete-names)
+  (q-specific-excluded-cntxs (q-branch-names->dbid '(World Earth Tolkien))))
+
+(displayln "Test cntxs API 3")
+
+(displayln (db-inspect-cntx-rec1 (q-branch-names->dbid (list 'World 'T))))
+
+(displayln (db-inspect-cntx (q-cntx-names->dbid '(World T) '(a))))
+
+(displayln (db-inspect-include-cntx))
+
+(displayln (db-inspect-exclude-cntx))
+

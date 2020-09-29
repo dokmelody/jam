@@ -84,7 +84,7 @@
 
   (check-query?
     "Inheritance of facts 2"
-    (datalog doknil-db (? (isa world issue-1 related IS-PART-OF OBJECT CNTX FACT))
+    (datalog doknil-db (? (isa world issue-1 related IS-PART-OF OBJECT CNTX FACT)))
     (list (list (cons 'IS-PART-OF #f) (cons 'OBJECT 'acme-corporation) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
           (list (cons 'IS-PART-OF #f) (cons 'OBJECT 'department-x) (cons 'CNTX 'cntx-world) (cons 'FACT 'fact-1))
           ))

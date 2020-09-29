@@ -223,6 +223,51 @@ TODO store in a map/db the assocation between key and card object
 
 Racket functions (also system functions) have rather expensive contracts.
 
+## MAYBE Support queries like this
+
+```
+!query, /World/?Cntx --> {
+    @Fact(?$fact1), $issue1 isa issue of ?$obj
+    !check, ?$fact1.role == issue
+
+    !check {
+      ?$fact1.role.complement == of
+      ?$fact1.obj == ?$obj
+    }
+
+    !check, ?$fact1 {
+      ~.role == issue
+      ~.role.complement == of
+    }
+
+    !check, ?$fact1 {
+      ~.role {
+        ~ == issue
+        ~.complement == of
+        ~~.obj == ?$obj
+      }
+    }
+}
+
+!query {
+  /World/?Cntx --> {
+    $issue1 isa task of ?$obj
+  }
+}
+
+!query {
+  /World/Earth --> {
+    @Fact(?fact3), ?$city isa city of ?$obj
+  }
+}
+
+!query {
+  /World/Earth/Tolkien --> {
+    @Fact(?fact4), ?$city isa city of ?$obj
+  }
+}
+```
+
 # Done Tasks
 
 ### DONE Doknil parser

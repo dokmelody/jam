@@ -221,7 +221,7 @@
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; Return all visible cntx taking in consideration all,
-   ;; so cntx hierarchy, groups and ``!include`` and ``!exclude``paths.
+   ;; i.e. cntx hierarchy, groups and ``!include`` and ``!exclude``paths.
    ;;
    ;; ``!exclude`` has more priority than ``!include``.
 
@@ -271,4 +271,29 @@
    (! (:- (isa BRANCH INSTANCE ROLE2 IS-PART-OF OBJECT CNTX FACT)
 
           (isa-rec1 BRANCH INSTANCE ROLE1 OBJECT CNTX FACT)
-          (role-rec ROLE1 ROLE2 IS-PART-OF))))
+          (role-rec ROLE1 ROLE2 IS-PART-OF)))
+
+   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+   ;; Used in Query API
+
+   (! (:- (branch-include-cntx BRANCH SRC-CNTX)
+
+          (cntx BRANCH-CNTX BRANCH IGNORE1)
+          (!= IGNORE1 'ignore)
+          (include-cntx BRANCH-CNTX SRC-CNTX)
+          ))
+
+   (! (:- (branch-exclude-cntx BRANCH SRC-CNTX)
+
+          (cntx BRANCH-CNTX BRANCH IGNORE1)
+          (!= IGNORE1 'ignore)
+          (exclude-cntx BRANCH-CNTX SRC-CNTX)
+          ))
+
+   (! (:- (all-branch-exclude-cntx BRANCH SRC-CNTX)
+
+          (cntx-rec3 BRANCH BRANCH-CNTX)
+          (exclude-cntx BRANCH-CNTX SRC-CNTX)
+          ))
+
+)
