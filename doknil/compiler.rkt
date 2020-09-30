@@ -17,13 +17,8 @@
 ;; TODO rewrite regression tests for using the API
 ;; TODO add tests about consistency of the DB analyzing the Doknil source code
 ;; TODO use a defalt NULL/nil value for some of the specified relations
-;; TODO store in a data structure apart the associations between ids and complete hierarchy name
-;; TODO use this same structure for lookup during parsing
-;; TODO the same for roles, and all other Doknil elements
 ;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
 ;; TODO make sure to register also roles without a parent
-;; TODO it is important showing explicitely overriden contexts
-;; TODO in queries one can only specify branches without groups
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
 ;; TODO update tests using the compiler API
@@ -688,27 +683,31 @@
               [(eq? #f pid) '()]
               [else (q-role-defs pid)]))))
 
+;; Generate unique facts from a result-set.
+(define (unique-facts rs)
+  (set-map
+   (list->set (map (lambda (d) (hash-ref d 'FACT)) rs))
+   (curry q-fact)))
 
 (define (q-facts-with-subj-obj branch-id subj-id obj-id)
   (let ([ds (datalog doknil-db (? (isa #,branch-id #,subj-id ROLE IS-PART-OF #,obj-id CNTX FACT)))])
-    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)
-    ))
+    (unique-facts ds)))
 
 (define (q-facts-with-subj branch-id subj-id)
   (let ([ds (datalog doknil-db (? (isa #,branch-id #,subj-id ROLE IS-PART-OF OBJ CNTX FACT)))])
-    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
+    (unique-facts ds)))
 
 (define (q-facts-with-obj branch-id obj-id)
   (let ([ds (datalog doknil-db (? (isa #,branch-id SUBJ ROLE IS-PART-OF #,obj-id CNTX FACT)))])
-    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
+    (unique-facts ds)))
 
 (define (q-facts-with-subj-role branch-id subj-id role-id)
   (let ([ds (datalog doknil-db (? (isa #,branch-id #,subj-id #,role-id IS-PART-OF OBJ CNTX FACT)))])
-    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
+    (unique-facts ds)))
 
 (define (q-facts-with-obj-role branch-id obj-id role-id)
   (let ([ds (datalog doknil-db (? (isa #,branch-id SUBJ #,role-id IS-PART-OF #,obj-id CNTX FACT)))])
-    (map (lambda (d) (q-fact (hash-ref d 'FACT))) ds)))
+    (unique-facts ds)))
 
 ;; Return cntxs excluded from this branch,
 ;; or one of its accessible parent branches.
@@ -1120,7 +1119,7 @@ doknil-dbids
 (displayln (q-describe-cntxs))
 
 (displayln "Compiled facts")
-;; TODO list too many facts that are the same!
+
 (define d1 (q-facts-with-subj-obj
  (q-cntx-names->dbid (list 'World) '())
  (q-name->dbid '$issue1)
