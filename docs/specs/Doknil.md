@@ -76,7 +76,7 @@ Parts are important because in Doknil a fact of a part is also a fact for the ow
 
 ### Attributes vs links
 
-A link (i.e. a relationships in graph-databases) connects two instances/cards using the Doknil semantic and derivation rules. In Doknil a link is always a relationship between an ``instance`` and another ``owner`` instance (that can be also ``root`` if not specified)according a specific ``role``.
+A link (i.e. a relationships in graph-databases) connects two instances/cards using the Doknil semantic and derivation rules. In Doknil a link is always a relationship between an ``instance`` and another ``owner`` instance (that can be also ``root`` if not specified) according a specific ``role``.
 
 An attribute (i.e. a property in graph-database) is a named property of an instance containing usually a value, but also a reference to another instance.
 
@@ -139,7 +139,7 @@ World --> {
 }
 
 World/LordOfTheRings.places --> {
-  !exclude World/Earth.places
+  !exclude World.earth.places
 
   $gondor isa city
 }
@@ -163,8 +163,9 @@ World/ThesisOnTolkien --> {
 * ``!include`` specifies a context on a distinct path, because parent context are included by default (i.e. a fact of parent context is also a fact of a child context).
 * Facts inside a parent context are also facts of the child context (e.g. ``c1`` facts are also facts of ``c1/c2``).
 * Facts of a parent group context are also facts of a child group context (e.g. ``c1.g1`` facts are also facts of ``c1.g1.g2``).
-* If a target context include (or exclude) facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included (or excluded).
-* If a target context include (or exclude) facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included (or excluded), while there is no effect on distinct source contexts like ``c1/c2`` and ``c1.g3``.
+* If a target context include (or exclude) facts of a context ``c1.g1``, then also facts of context ``c1.g1.g2`` are included (or excluded), but not facts on distinct group ``c1.h1``.
+* If a target context include (or exclude) facts of a context ``c1/c2.g1``, then also facts of context ``c1/c2`` and parent context ``c1`` are included. But facts of context ``c1/c2.h1`` are not included.
+* The empty (i.e. unspecified) context is the root context.
 
 ### Negation
 

@@ -78,7 +78,7 @@
    ;; > (! (role ID IS-PART-OF PARENT))
 
    ;; The branch of a context. Something like ``world/x/y``.
-   ;; The root context branch `world` has parent set to #f, and the special id 0
+   ;; The root branch has parent set to #f.
    ;;
    ;; > (! (branch ID PARENT))
 
@@ -86,7 +86,7 @@
    ;; Something like ``world/x/y.a.b.c``.
    ;; The PARENT manage only the group part, so the BRANCH must remain constant
    ;; in the same hierarchy.
-   ;;
+   ;; The root group of a branch has parent set to #f.
    ;; > (cntx ID BRANCH PARENT)
 
    ;; Something like ``dstContext.some.group --> { !include some/source/cntx.another.group.cntx }``
@@ -145,25 +145,18 @@
           (!= IGNORE3 'ignore)))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-   ;; Return all defined cntx groups of a branch.
+   ;; Return all cntx groups of a branch.
+   ;; Do not follow branch parents, but only cntx group childs.
    ;; E.g. for branch ``x/y`` return ``x/y.a``, ``x/y.b``, ``x/y.b.c``
-   ;; Do not follow cntx parents.
 
-   ; Return extensional facts.
    (! (:- (branch-group-rec BRANCH CNTX)
 
           (cntx CNTX BRANCH IGNORE1)
           (!= IGNORE1 'ignore)))
 
-   ; Return the groups on the same branch.
-   (! (:- (branch-group-rec BRANCH CNTX2)
-
-          (branch-group-rec BRANCH CNTX1)
-          (cntx CNTX2 BRANCH CNTX1)))
-
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; Return all parent branches of a branch.
-   ;; Do not follow cntx parents.
+   ;; Do not follow cntx group childs.
 
    ; Return the branch itself.
    (! (:- (branch-rec BRANCH1 BRANCH2)
@@ -172,19 +165,16 @@
           (!= IGNORE1 'ignore)
           (= BRANCH1 BRANCH2)))
 
-   ; Return extensional facts
-   (! (:- (branch-rec BRANCH PARENT)
+   ; Recursive closure, following parents.
+   (! (:- (branch-rec BRANCH1 BRANCH2)
 
-          (branch BRANCH PARENT)))
-
-   ; Transitive closure.
-   (! (:- (branch-rec BRANCH PARENT2)
-
-          (branch-rec BRANCH PARENT1)
-          (branch PARENT1 PARENT2)))
+          (branch BRANCH1 PARENT)
+          (!= PARENT #f)
+          (branch-rec PARENT BRANCH2)
+          ))
 
    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-   ;; Return all group cntx of current and parent branches.
+   ;; Return all cntx groups of current and parent branches.
 
    (! (:- (cntx-rec1 BRANCH GROUP2)
 

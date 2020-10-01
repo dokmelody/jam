@@ -12,13 +12,10 @@
          "grammar.rkt"
          "runtime.rkt")
 
+;; TODO think that an include of T/S.a.b can not see (or see) S.a, but it can see T
 ;; TODO remove ``debug`` in the language section at the end
-;; TODO replace World cntx with implicit null cntx
-;; TODO rewrite regression tests for using the API
-;; TODO add tests about consistency of the DB analyzing the Doknil source code
-;; TODO use a defalt NULL/nil value for some of the specified relations
-;; TODO create an id for ``world`` and for the empty context-group. Using an id is more coherent on the UI and query side
-;; TODO make sure to register also roles without a parent
+;; TODO rewrite regression tests, using this API
+;; TODO export the query API functions
 ;; TODO check that cntx itself is returned, and so no facts are left behind
 ;; TODO check that all ``of`` relationships have no child role without ``of`` COMPLEMENT
 ;; TODO update tests using the compiler API
@@ -189,7 +186,8 @@
                                    (map (curry symbol->string) g-names)
                                    "."
                                    #:before-first ".")])])
-              (string-append b-part g-part))]))
+         (cond [(and (null? b-names) (null? g-names)) "/"]
+               [else (string-append b-part g-part)]))]))
 
 ;; Describe cntx info, for debug porpouse.
 (define (q-describe-cntxs)
@@ -420,8 +418,11 @@
 
     (define cntxs-include '())
     (define cntxs-exclude '())
-    (define found-cntx-dbid-set (mutable-set))
 
+
+    (define found-cntx-dbid-set (mutable-set (q-cntx-names->dbid '() '())))
+    ;; NOTE: add root cntx
+    
     (define (generate-cntxs-include)
       (map (lambda (x)
              (with-output-language (L3 CntxExplicitTree)
@@ -505,8 +506,6 @@
          (let* ([stmt** (flatten (map (lambda (x) (Stmt x (q-root-cntx-dbid))) stmt*))]
                 [branch-def** (cntxs-generate-all-branch-defs)]
                 [cntx-def** (cntxs-generate-all-group-defs)]
-                [explicit-includes** (generate-cntxs-include)]
-                [explicit-includes** (generate-cntxs-exclude)]
                 [explicit-cntxs** (append (generate-cntxs-include) (generate-cntxs-exclude))]
                 )
            `(knowledge-base
@@ -755,6 +754,19 @@
             " "
             (symbol->string (q-name obj)))])))
 
+(define (db-inspect-isa-fact subj-id)
+  (let* ([ds (datalog doknil-db (? (isa-fact FACT-ID CNTX #,subj-id ROLE OBJ)))])
+
+    (map (lambda (d)
+           (string-join
+            `("isa-fact"
+             ,(number->string (hash-ref d 'FACT-ID))
+             ,(q-cntx-dbid->complete-names (hash-ref d 'CNTX))
+             ,(symbol->string (q-name subj-id))
+             ,(db-inspect-role->str (hash-ref d 'ROLE) (hash-ref d 'OBJ))
+             "\n"
+             ) " ")) ds)))
+
 (define (db-inspect-isa subj-id)
   (let* ([ds (datalog doknil-db (? (isa BRANCH #,subj-id ROLE IS-PART-OF OBJ CNTX FACT)))])
 
@@ -768,12 +780,45 @@
              "\n"
              ) " ")) ds)))
 
+(define (db-inspect-branch-group-rec branch-id)
+  (let* ([ds (datalog doknil-db (? (branch-group-rec #,branch-id PARENT-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("branch-group-rec"
+             ,(q-cntx-dbid->complete-names branch-id)
+             ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-branch-rec branch-id)
+  (let* ([ds (datalog doknil-db (? (branch-rec #,branch-id PARENT-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("branch-rec"
+             ,(q-cntx-dbid->complete-names branch-id)
+             ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
+             "\n"
+             ) " ")) ds)))
+
 (define (db-inspect-cntx-rec1 branch-id)
   (let* ([ds (datalog doknil-db (? (cntx-rec1 #,branch-id PARENT-CNTX)))])
 
     (map (lambda (d)
            (string-join
             `("cntx-rec1"
+             ,(q-cntx-dbid->complete-names branch-id)
+             ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
+             "\n"
+             ) " ")) ds)))
+
+(define (db-inspect-cntx-rec3 branch-id)
+  (let* ([ds (datalog doknil-db (? (cntx-rec3 #,branch-id PARENT-CNTX)))])
+
+    (map (lambda (d)
+           (string-join
+            `("cntx-rec3"
              ,(q-cntx-dbid->complete-names branch-id)
              ,(q-cntx-dbid->complete-names (hash-ref d 'PARENT-CNTX))
              "\n"
@@ -1063,9 +1108,15 @@ World/S.a --> {
   $k2 isa department of $k1
 }
 
+$rootAcme isa company
+$rootK1 isa department of $rootAcme
+
+World --> {
+  $rootK2 isa department of $rootK1
+}
+
 DOKNIL-SRC
 )
-
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug
@@ -1157,11 +1208,46 @@ d1
 
 (displayln "Test cntxs API 3")
 
-(displayln (db-inspect-cntx-rec1 (q-branch-names->dbid (list 'World 'T))))
+(map (curry fact-describe)
+     (q-facts-with-subj
+       (q-branch-names->dbid '())
+       (q-name->dbid '$rootK1)))
 
+(map (curry fact-describe)
+     (q-facts-with-subj-obj
+       (q-branch-names->dbid '(World))
+       (q-name->dbid '$rootK2)
+       (q-name->dbid '$rootAcme)))
+
+(map (curry fact-describe)
+     (q-facts-with-subj
+       (q-branch-names->dbid '(World))
+       (q-name->dbid '$rootK1)))
+
+(map (curry fact-describe)
+     (q-facts-with-subj
+       (q-branch-names->dbid '(World))
+       (q-name->dbid '$rootK2)))
+
+(displayln "Inspect Doknil cntx World.T")
+(displayln (db-inspect-branch-rec (q-branch-names->dbid (list 'World 'T))))
+(displayln (db-inspect-branch-group-rec (q-branch-names->dbid (list 'World 'T))))
+(displayln (db-inspect-cntx-rec1 (q-branch-names->dbid (list 'World 'T))))
+(displayln (db-inspect-cntx-rec3 (q-branch-names->dbid (list 'World 'T))))
 (displayln (db-inspect-cntx (q-cntx-names->dbid '(World T) '(a))))
 
-(displayln (db-inspect-include-cntx))
+(displayln "Inspect Doknil root cntx")
+(displayln (db-inspect-branch-rec (q-branch-names->dbid '() )))
+(displayln (db-inspect-branch-group-rec (q-branch-names->dbid '() )))
+(displayln (db-inspect-cntx-rec1 (q-branch-names->dbid '() )))
+(displayln (db-inspect-cntx-rec3 (q-branch-names->dbid '() )))
+(displayln (db-inspect-cntx (q-cntx-names->dbid '() '())))
 
+(displayln "Inspect Doknil cntx include")
+(displayln (db-inspect-cntx-all))
+(displayln (db-inspect-include-cntx))
 (displayln (db-inspect-exclude-cntx))
 
+(displayln "Inspect Doknil facts")
+(displayln (db-inspect-isa-fact (q-name->dbid '$rootK1)))
+(displayln (db-inspect-isa (q-name->dbid '$rootK1)))
